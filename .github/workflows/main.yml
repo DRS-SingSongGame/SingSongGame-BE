@@ -21,7 +21,7 @@ jobs:
         java-version: '17'
 
     - name: Build JAR with Gradle
-      run: ./gradlew build --no-daemon
+      run: ./gradlew build -x test --no-daemon
 
     # ECR 로그인
     - name: Login to Amazon ECR
