@@ -52,6 +52,11 @@ jobs:
         username: ubuntu
         key: ${{ secrets.INSTANCE_SSH_KEY }} 
         script: |
+          # EC2 내부에서 ECR 인증
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+          # 컨테이너 재시작
           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           docker stop backend || true && docker rm backend || true
           docker run -d --name backend -p 8080:8080 \
