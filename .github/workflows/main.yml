@@ -49,7 +49,7 @@ jobs:
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.INSTANCE_HOST }}
-        username: ec2-user
+        username: ubuntu
         key: ${{ secrets.INSTANCE_SSH_KEY }} 
         script: |
           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
