@@ -49,7 +49,7 @@ jobs:
       with:
         host: ${{ secrets.INSTANCE_HOST }}
         username: ec2-user
-        key: ${{ secrets.EC2_SSH_KEY }}
+        key: ${{ secrets.INSTANCE_SSH_KEY }}
         script: |
           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           docker stop backend || true && docker rm backend || true
