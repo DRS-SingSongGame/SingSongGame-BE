@@ -43,13 +43,19 @@ jobs:
         docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }} .
         docker push  ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
+    # EC2에 접속해 컨테이너 재시작 전, SSH 키 복호화
+    - name: Decode SSH private key
+      run: |
+        echo "${{ secrets.INSTANCE_SSH_KEY }}" | base64 -d > key.pem
+        chmod 600 key.pem
+
     # EC2에 접속해 컨테이너 재시작
     - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.INSTANCE_HOST }}
         username: ec2-user
-        key: ${{ secrets.INSTANCE_SSH_KEY }}
+        key: ./key.pem
         script: |
           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           docker stop backend || true && docker rm backend || true
