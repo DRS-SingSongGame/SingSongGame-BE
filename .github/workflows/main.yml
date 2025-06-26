@@ -1,0 +1,35 @@
+name : Deploy BE to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+        | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }} .
+        docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}
+
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.INSTANCE_HOST }}
+        username: ${{ secrets.INSTANCE_USER }}
+        key: ${{ secrets.INSTANCE_SSH_KEY }}
+        script: |
+          docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}
+          docker stop backend || true
+          docker rm backend || true
+          docker run -d -p 8080:8080 --name backend ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}
