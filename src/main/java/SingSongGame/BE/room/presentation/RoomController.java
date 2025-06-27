@@ -6,6 +6,8 @@ import SingSongGame.BE.common.response.ApiResponseGenerator;
 import SingSongGame.BE.common.response.MessageCode;
 import SingSongGame.BE.room.application.RoomService;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
+import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
+import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/room")
 @RequiredArgsConstructor
@@ -25,9 +29,16 @@ public class RoomController {
 
     @Operation(summary = "방 생성")
     @PostMapping
-    public ApiResponse<ApiResponseBody.SuccessBody<Long>> createRoom(@RequestBody CreateRoomRequest request) {
-        Long response = roomService.createRoom(request);
+    public ApiResponse<ApiResponseBody.SuccessBody<CreateRoomResponse>> createRoom(@RequestBody CreateRoomRequest request) {
+        CreateRoomResponse response = roomService.createRoom(request);
         return ApiResponseGenerator.success(response, HttpStatus.CREATED, MessageCode.CREATE);
+    }
+
+    @Operation(summary = "게임 방 목록 조회")
+    @GetMapping()
+    public ApiResponse<ApiResponseBody.SuccessBody<List<GetRoomResponse>>> getRooms() {
+        List<GetRoomResponse> response = roomService.getRoomsInRoby();
+        return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.UPDATE);
     }
 
     @Operation(summary = "방 수정")
@@ -47,13 +58,6 @@ public class RoomController {
     @Operation(summary = "방 나가기")
     @PostMapping("/{roomId}/exit")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> exitRoom() {
-        // 구현 필요
-        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.UPDATE);
-    }
-
-    @Operation(summary = "게임 방 목록 조회")
-    @GetMapping()
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> getRooms() {
         // 구현 필요
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.UPDATE);
     }
