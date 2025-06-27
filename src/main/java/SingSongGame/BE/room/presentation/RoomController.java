@@ -25,9 +25,9 @@ public class RoomController {
 
     @Operation(summary = "방 생성")
     @PostMapping
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> createRoom(@RequestBody CreateRoomRequest request) {
-        roomService.createRoom(request);
-        return ApiResponseGenerator.success(HttpStatus.CREATED, MessageCode.CREATE);
+    public ApiResponse<ApiResponseBody.SuccessBody<Long>> createRoom(@RequestBody CreateRoomRequest request) {
+        Long response = roomService.createRoom(request);
+        return ApiResponseGenerator.success(response, HttpStatus.CREATED, MessageCode.CREATE);
     }
 
     @Operation(summary = "방 수정")
