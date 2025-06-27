@@ -7,7 +7,7 @@ on:
 
 jobs:
   ci-check:
-    if: startsWith(github.head_ref, 'feat/')
+    if: startsWith(github.head_ref, 'feat-')
     runs-on: ubuntu-latest
 
     steps:
