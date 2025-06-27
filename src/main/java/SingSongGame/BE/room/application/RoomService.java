@@ -21,7 +21,7 @@ public class RoomService {
     private final AuthRepository authRepository;
 
     @Transactional
-    public void createRoom(CreateRoomRequest request) {
+    public Long createRoom(CreateRoomRequest request) {
         //User host = authRepository.findById(request.getHostId())
         //        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
         Room room = Room.builder()
@@ -33,6 +33,7 @@ public class RoomService {
                 .gameStatus(GameStatus.valueOf("WAITING"))
                 //.host(host) // 소셜 로그인 구현 후 수정 필요.
                 .build();
-        roomRepository.save(room);
+        Long saveId = roomRepository.save(room).getId();
+        return saveId;
     }
 }
