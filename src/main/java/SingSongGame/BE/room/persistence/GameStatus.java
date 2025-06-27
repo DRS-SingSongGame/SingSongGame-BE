@@ -1,7 +1,7 @@
 package SingSongGame.BE.room.persistence;
 
 public enum GameStatus {
-    WAITTING,
+    WAITING,
     IN_PROGRESS,
     DELETED
 }

@@ -31,6 +31,7 @@ public class User {
     //@Column(nullable = false)
     private String imageUrl;
 
+    @Builder.Default
     @OneToMany(mappedBy = "user")
     private List<InGame> inGames = new ArrayList<>();
 }
