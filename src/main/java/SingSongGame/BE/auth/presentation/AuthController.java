@@ -41,7 +41,7 @@ public class AuthController {
     @PostMapping("/reissue")
     public ApiResponse<SuccessBody<Void>> reissue() {
         // 구현 필요
-        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.REISSUE)
+        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.REISSUE);
     }
 
 

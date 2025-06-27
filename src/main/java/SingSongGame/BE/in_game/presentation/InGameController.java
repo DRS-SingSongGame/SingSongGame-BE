@@ -16,14 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class InGameController {
 
     @Operation(summary = "인 게임 유저 정보 조회")
-    @GetMapping
+    @GetMapping("/users")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> getInGameUsers() {
         // 구현 필요
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.GET);
     }
 
     @Operation(summary = "인 게임 정보 조회")
-    @GetMapping
+    @GetMapping("/info")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> getInGameInfo() {
         // 구현 필요
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.GET);
