@@ -38,7 +38,7 @@ public class RoomController {
     @GetMapping()
     public ApiResponse<ApiResponseBody.SuccessBody<List<GetRoomResponse>>> getRooms() {
         List<GetRoomResponse> response = roomService.getRoomsInRoby();
-        return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.UPDATE);
+        return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.GET);
     }
 
     @Operation(summary = "방 수정")
