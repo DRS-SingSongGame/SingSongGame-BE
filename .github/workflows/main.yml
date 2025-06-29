@@ -60,6 +60,17 @@ jobs:
           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           docker stop backend || true && docker rm backend || true
           docker run -d --name backend -p 8080:8080 \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            --env SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
+            --env SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }} \
+            --env SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }} \
+            --env KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
+            --env KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }} \
+            --env DEV_KAKAO_REDIRECT_URL=${{ secrets.DEV_KAKAO_REDIRECT_URL }} \
+            --env PROD_KAKAO_REDIRECT_URL=${{ secrets.PROD_KAKAO_REDIRECT_URL }} \
+            --env FRONTEND_REDIRECT_URL_LOCAL=${{ secrets.FRONTEND_REDIRECT_URL_LOCAL }} \
+            --env FRONTEND_REDIRECT_URL_PROD=${{ secrets.FRONTEND_REDIRECT_URL_PROD }} \
+            --env JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
             -e SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
             -e SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }} \
             -e SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }} \

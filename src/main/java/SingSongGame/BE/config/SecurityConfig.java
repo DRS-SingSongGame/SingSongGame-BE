@@ -35,7 +35,6 @@ public class SecurityConfig {
                     .anyRequest().authenticated()
             )
                 .oauth2Login(oauth -> oauth
-                        .loginPage("/login")
                         .successHandler(oAuth2LoginSuccessHandler)
                 )
             .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),

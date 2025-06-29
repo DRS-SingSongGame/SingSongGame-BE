@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/in-game")
+@RequestMapping("/in-game")
 public class InGameController {
 
     @Operation(summary = "인 게임 유저 정보 조회")
