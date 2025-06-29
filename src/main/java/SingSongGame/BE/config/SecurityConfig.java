@@ -42,4 +42,4 @@ public class SecurityConfig {
                 UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-} 
+}
