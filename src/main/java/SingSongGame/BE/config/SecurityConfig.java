@@ -1,21 +1,45 @@
 package SingSongGame.BE.config;
 
+import SingSongGame.BE.auth.filter.JwtAuthenticationFilter;
+import SingSongGame.BE.auth.handler.OAuth2LoginSuccessHandler;
+import SingSongGame.BE.common.util.JwtProvider;
+import SingSongGame.BE.user.persistence.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @EnableWebSecurity
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtProvider jwtProvider;
+    private final UserRepository userRepository;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+        return http
             .csrf(csrf -> csrf.disable())
+            .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll()
-            );
-        return http.build();
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/api/auth/nickname").authenticated()
+                    .requestMatchers("/api/**").permitAll()
+                    .anyRequest().authenticated()
+            )
+                .oauth2Login(oauth -> oauth
+                        .loginPage("/login")
+                        .successHandler(oAuth2LoginSuccessHandler)
+                )
+            .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),
+                UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 }
