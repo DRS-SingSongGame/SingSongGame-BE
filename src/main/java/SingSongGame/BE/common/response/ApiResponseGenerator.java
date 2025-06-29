@@ -21,5 +21,4 @@ public class ApiResponseGenerator {
         return new ApiResponse<>(
                 new ApiResponseBody.FailureBody(String.valueOf(status.value()), code, message), status);
     }
-
 }
