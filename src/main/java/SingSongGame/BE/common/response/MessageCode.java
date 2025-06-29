@@ -7,7 +7,9 @@ public enum MessageCode {
     DELETE("200", "삭제 성공"),
     LOGIN("200", "로그인 성공"),
     LOGOUT("200", "로그아웃 성공"),
-    REISSUE("200", "ACCESS TOKEN 재발급 성공");
+    REISSUE("200", "ACCESS TOKEN 재발급 성공"),
+    SUCCESS("200", "요청 성공");
+
 
     private final String code;
     private final String message;
