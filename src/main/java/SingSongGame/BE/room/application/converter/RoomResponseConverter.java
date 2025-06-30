@@ -1,5 +1,6 @@
 package SingSongGame.BE.room.application.converter;
 
+import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import SingSongGame.BE.room.persistence.Room;
@@ -12,7 +13,9 @@ import java.util.stream.Collectors;
 public class RoomResponseConverter {
 
     public CreateRoomResponse from(Long roomId) {
-        return CreateRoomResponse.builder().id(roomId).build();
+        return CreateRoomResponse.builder()
+                .id(roomId)
+                .build();
     }
 
     public GetRoomResponse from(Room room) {
@@ -23,6 +26,8 @@ public class RoomResponseConverter {
                 .isPrivate(room.getIsPrivate())
                 .maxPlayer(room.getMaxPlayer())
                 .gameStatus(room.getGameStatus())
+                .hostId(room.getHost().getId())
+                .hostName(room.getHost().getName())
                 .build();
     }
 
