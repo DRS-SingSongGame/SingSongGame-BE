@@ -23,8 +23,7 @@ public class LobbyChatController {
                 .id(System.currentTimeMillis())
                 .name("사용자_" + (System.currentTimeMillis() % 1000))
                 .build();
-        
-        log.info("로비 채팅 요청: {} - {}", dummyUser.getName(), request.getMessage());
+
         lobbyChatService.sendLobbyMessage(dummyUser, request.getMessage());
     }
 } 

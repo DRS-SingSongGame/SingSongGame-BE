@@ -27,7 +27,6 @@ public class LobbyChatService {
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
-        log.info("로비 메시지 전송: {} - {}", user.getName(), message);
     }
 
     public void sendUserEnterLobby(User user) {
@@ -41,7 +40,6 @@ public class LobbyChatService {
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
-        log.info("로비 입장: {}", user.getName());
     }
 
     public void sendUserLeaveLobby(User user) {
@@ -55,6 +53,5 @@ public class LobbyChatService {
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
-        log.info("로비 퇴장: {}", user.getName());
     }
 } 
