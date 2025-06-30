@@ -5,6 +5,7 @@ public record LoginResponse(
         String refreshToken,
         boolean isFirstLogin,
         Long userId,
-        String email
+        String email,
+        String name
 )
 {}

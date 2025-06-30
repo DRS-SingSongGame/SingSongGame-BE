@@ -25,17 +25,20 @@ public class CookieUtil {
     }
 
     public static void deleteSameSiteCookie(HttpServletResponse response, String name, boolean secure) {
-        StringBuilder cookie = new StringBuilder();
-        cookie.append(name).append("=;");
-        cookie.append(" Path=/;");
-        cookie.append(" Max-Age=0;");
-        cookie.append(" HttpOnly;");
-        if (secure) {
-            cookie.append(" Secure;");
-        }
-        cookie.append(" SameSite=None;");
+        String[] sameSiteValues = { "None", "Lax", "Strict" };
 
-        response.addHeader("Set-Cookie", cookie.toString());
+        for (String sameSite : sameSiteValues) {
+            StringBuilder cookie = new StringBuilder();
+            cookie.append(name).append("=;");
+            cookie.append(" Path=/;");
+            cookie.append(" Max-Age=0;");
+            cookie.append(" HttpOnly;");
+            if (secure) {
+                cookie.append(" Secure;");
+            }
+            cookie.append(" SameSite=").append(sameSite).append(";");
+            response.addHeader("Set-Cookie", cookie.toString());
+        }
     }
 
     public static void expireCookieWithSameSite(HttpServletResponse response, String name, boolean secure) {

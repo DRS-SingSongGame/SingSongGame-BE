@@ -1,6 +1,7 @@
 package SingSongGame.BE.config;
 
 import SingSongGame.BE.auth.filter.JwtAuthenticationFilter;
+import SingSongGame.BE.auth.handler.CustomOAuth2UserService;
 import SingSongGame.BE.auth.handler.OAuth2LoginSuccessHandler;
 import SingSongGame.BE.common.util.JwtProvider;
 import SingSongGame.BE.user.persistence.UserRepository;
@@ -35,7 +36,11 @@ public class SecurityConfig {
                     .anyRequest().authenticated()
             )
                 .oauth2Login(oauth -> oauth
+                                .userInfoEndpoint(userInfo ->userInfo
+                                        .userService(new CustomOAuth2UserService())
+                                )
                         .successHandler(oAuth2LoginSuccessHandler)
+//                        .defaultSuccessUrl("/auth/success", true)
                 )
             .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),
                 UsernamePasswordAuthenticationFilter.class)
