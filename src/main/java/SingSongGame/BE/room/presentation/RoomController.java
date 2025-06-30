@@ -1,5 +1,7 @@
 package SingSongGame.BE.room.presentation;
 
+import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.common.annotation.LoginUser;
 import SingSongGame.BE.common.response.ApiResponse;
 import SingSongGame.BE.common.response.ApiResponseBody;
 import SingSongGame.BE.common.response.ApiResponseGenerator;
@@ -29,8 +31,10 @@ public class RoomController {
 
     @Operation(summary = "방 생성")
     @PostMapping
-    public ApiResponse<ApiResponseBody.SuccessBody<CreateRoomResponse>> createRoom(@RequestBody CreateRoomRequest request) {
-        CreateRoomResponse response = roomService.createRoom(request);
+    public ApiResponse<ApiResponseBody.SuccessBody<CreateRoomResponse>> createRoom(
+            @RequestBody CreateRoomRequest request,
+            @LoginUser User loginUser) {
+        CreateRoomResponse response = roomService.createRoom(request, loginUser);
         return ApiResponseGenerator.success(response, HttpStatus.CREATED, MessageCode.CREATE);
     }
 
