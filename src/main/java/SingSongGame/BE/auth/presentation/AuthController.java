@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 @RestController
@@ -58,7 +59,8 @@ public class AuthController {
     public ApiResponse<SuccessBody<Void>> logout(HttpServletResponse response) {
         boolean isSecure = !Arrays.asList(environment.getActiveProfiles()).contains("dev");
 
-        CookieUtil.expireCookieWithSameSite(response, "refresh_token", isSecure);
+        CookieUtil.deleteSameSiteCookie(response, "access_token", isSecure);
+        CookieUtil.deleteSameSiteCookie(response, "refresh_token", isSecure);
 
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.LOGOUT);
     }
@@ -70,6 +72,11 @@ public class AuthController {
     public ApiResponse<SuccessBody<Void>> reissue(@CookieValue("refresh_token") String refreshToken) {
         TokenResponse token = authService.reissue(refreshToken);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.REISSUE);
+    }
+
+    @GetMapping("/success")
+    public void redirect(HttpServletResponse response) throws IOException {
+        response.sendRedirect("http://localhost:3000/lobby"); // or nickname
     }
 
     @PatchMapping("/nickname")
