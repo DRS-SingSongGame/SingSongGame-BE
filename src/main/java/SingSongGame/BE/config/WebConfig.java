@@ -24,11 +24,7 @@ public class WebConfig implements WebMvcConfigurer {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://43.201.134.183:3000",
-                "https://singsonggame.store"
-        ));
+        config.setAllowedOriginPatterns(List.of("*")); // 모든 origin 허용
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("*"));
         config.setExposedHeaders(List.of("Authorization", "Set-Cookie")); // 필요시 추가
@@ -46,11 +42,7 @@ public class WebConfig implements WebMvcConfigurer {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-
-                        .allowedOrigins("http://localhost:3000",
-                                        "http://43.201.134.183:3000",
-                                        "https://singsonggame.store"
-                        )
+                        .allowedOriginPatterns("*") // 모든 origin 허용
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

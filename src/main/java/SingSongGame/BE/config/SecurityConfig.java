@@ -27,23 +27,23 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/api/auth/nickname").authenticated()
-                    .requestMatchers("/api/**").permitAll()
-                    .anyRequest().authenticated()
-            )
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/nickname").authenticated()
+                        .requestMatchers("/api/**").permitAll()
+                        .anyRequest().authenticated()
+                )
                 .oauth2Login(oauth -> oauth
-                                .userInfoEndpoint(userInfo ->userInfo
-                                        .userService(new CustomOAuth2UserService())
-                                )
-                        .successHandler(oAuth2LoginSuccessHandler)
+                                     .userInfoEndpoint(userInfo ->userInfo
+                                             .userService(new CustomOAuth2UserService())
+                                     )
+                                     .successHandler(oAuth2LoginSuccessHandler)
 //                        .defaultSuccessUrl("/auth/success", true)
                 )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),
-                UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),
+                                 UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
