@@ -60,7 +60,8 @@ public class AuthService {
                 refreshToken,
                 user.isFirstLogin(),
                 user.getId(),
-                user.getEmail()
+                user.getEmail(),
+                user.getName()
         );
     }
 

@@ -25,4 +25,8 @@ public class UserService {
         user.setName(username);
         return user; // save 생략 가능 (영속성 컨텍스트 내부에서 자동 반영)
     }
+
+    public Boolean isAvailableName (String username) {
+        return userRepository.findByName(username).isEmpty();
+    }
 }

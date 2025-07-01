@@ -1,5 +1,6 @@
 package SingSongGame.BE.room.application;
 
+import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.room.application.converter.RoomRequestConverter;
 import SingSongGame.BE.room.application.converter.RoomResponseConverter;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
@@ -26,10 +27,10 @@ public class RoomService {
     //private final AuthRepository authRepository;
 
     @Transactional
-    public CreateRoomResponse createRoom(CreateRoomRequest request) {
+    public CreateRoomResponse createRoom(CreateRoomRequest request, User loginUser) {
         //User host = authRepository.findById(request.getHostId())
         //        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-        Room room = requestConverter.toEntity(request);
+        Room room = requestConverter.toEntity(request, loginUser);
         Long saveId = roomRepository.save(room).getId();
         return responseConverter.from(saveId);
     }

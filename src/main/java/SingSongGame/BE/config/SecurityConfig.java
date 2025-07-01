@@ -1,6 +1,7 @@
 package SingSongGame.BE.config;
 
 import SingSongGame.BE.auth.filter.JwtAuthenticationFilter;
+import SingSongGame.BE.auth.handler.CustomOAuth2UserService;
 import SingSongGame.BE.auth.handler.OAuth2LoginSuccessHandler;
 import SingSongGame.BE.common.util.JwtProvider;
 import SingSongGame.BE.user.persistence.UserRepository;
@@ -26,19 +27,23 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/api/auth/nickname").authenticated()
-                    .requestMatchers("/api/**").permitAll()
-                    .anyRequest().authenticated()
-            )
-                .oauth2Login(oauth -> oauth
-                        .successHandler(oAuth2LoginSuccessHandler)
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/nickname").authenticated()
+                        .requestMatchers("/api/**").permitAll()
+                        .anyRequest().authenticated()
                 )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),
-                UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login(oauth -> oauth
+                                     .userInfoEndpoint(userInfo ->userInfo
+                                             .userService(new CustomOAuth2UserService())
+                                     )
+                                     .successHandler(oAuth2LoginSuccessHandler)
+//                        .defaultSuccessUrl("/auth/success", true)
+                )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, userRepository),
+                                 UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
