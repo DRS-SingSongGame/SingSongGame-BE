@@ -23,26 +23,14 @@ public class LobbyController {
     private final LobbyChatService lobbyChatService;
 
     @PostMapping("/enter")
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> enterLobby() {
-        log.info("로비 입장 요청");
-        // 임시로 더미 사용자 생성
-        User dummyUser = User.builder()
-                .id(1L)
-                .name("테스트_사용자_" + System.currentTimeMillis() % 1000)
-                .build();
-        lobbyChatService.sendUserEnterLobby(dummyUser);
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> enterLobby(@LoginUser User user) {
+        lobbyChatService.sendUserEnterLobby(user);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.ENTER_LOBBY);
     }
 
     @PostMapping("/leave")
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> leaveLobby() {
-        log.info("로비 퇴장 요청");
-        // 임시로 더미 사용자 생성
-        User dummyUser = User.builder()
-                .id(1L)
-                .name("테스트_사용자_" + System.currentTimeMillis() % 1000)
-                .build();
-        lobbyChatService.sendUserLeaveLobby(dummyUser);
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> leaveLobby(@LoginUser User user) {
+        lobbyChatService.sendUserLeaveLobby(user);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.EXIT_LOBBY);
     }
 } 
