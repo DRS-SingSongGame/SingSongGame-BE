@@ -89,6 +89,48 @@ public class StompHandler implements ChannelInterceptor {
                     break;
                 case SEND:
                     log.info("STOMP 메시지 전송: {} -> {}", accessor.getSessionId(), accessor.getDestination());
+                    // SEND 명령어에서도 사용자 정보 설정
+                    if (accessor.getUser() == null) {
+                        String token = null;
+                        
+                        // 1. Authorization 헤더에서 토큰 확인
+                        List<String> authHeaders = accessor.getNativeHeader("Authorization");
+                        if (authHeaders != null && !authHeaders.isEmpty()) {
+                            String authHeader = authHeaders.get(0);
+                            if (authHeader.startsWith("Bearer ")) {
+                                token = authHeader.substring(7);
+                            }
+                        }
+                        
+                        // 2. 쿠키에서 토큰 확인
+                        if (token == null) {
+                            List<String> cookies = accessor.getNativeHeader("Cookie");
+                            if (cookies != null && !cookies.isEmpty()) {
+                                String cookieHeader = cookies.get(0);
+                                String[] cookiePairs = cookieHeader.split(";");
+                                for (String pair : cookiePairs) {
+                                    String[] keyValue = pair.trim().split("=");
+                                    if (keyValue.length == 2 && "access".equals(keyValue[0].trim())) {
+                                        token = keyValue[1].trim();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (token != null) {
+                            try {
+                                Long userId = jwtProvider.getUserIdFromToken(token);
+                                User user = userService.findById(userId);
+                                if (user != null) {
+                                    accessor.setUser(() -> user.getName());
+                                    log.info("SEND에서 사용자 인증 성공: {}", user.getName());
+                                }
+                            } catch (Exception e) {
+                                log.error("SEND에서 JWT 토큰 검증 실패: {}", e.getMessage());
+                            }
+                        }
+                    }
                     break;
             }
         }
