@@ -1,5 +1,6 @@
 package SingSongGame.BE.room.application;
 
+import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.persistence.GameStatus;
@@ -38,8 +39,14 @@ public class RoomServiceTest {
                                      //.host(host) // 소셜 로그인 구현 후 수정 필요.
                                      .build();
 
+        User dummyUser = User.builder()
+                             .id(System.currentTimeMillis())
+                             .name("사용자_" + (System.currentTimeMillis() % 1000))
+                             .build();
+
+
         //when
-        CreateRoomResponse roomId = roomService.createRoom(room);
+        CreateRoomResponse roomId = roomService.createRoom(room, dummyUser);
         Room roomTest = roomRepository.findById(roomId.getId()).orElseThrow();
 
         //then
