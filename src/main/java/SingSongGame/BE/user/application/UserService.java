@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
 
     private final UserRepository userRepository;
@@ -23,12 +24,12 @@ public class UserService {
     }
 
     @Transactional
-    public User updateName(Long userId, String username) {
+    public void updateName(Long userId, String username) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다"));
 
         user.updateUserName(username);
-        return user; // save 생략 가능 (영속성 컨텍스트 내부에서 자동 반영)
+        // save 생략 가능 (영속성 컨텍스트 내부에서 자동 반영)
     }
 
     public Boolean isAvailableName (String username) {
