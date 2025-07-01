@@ -38,4 +38,8 @@ public class User {
     @Builder.Default
     @OneToMany(mappedBy = "user")
     private List<InGame> inGames = new ArrayList<>();
+
+    public void updateUserName(String name) {
+        this.name = name;
+    }
 }
