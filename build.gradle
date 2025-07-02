@@ -42,6 +42,9 @@ dependencies {
 
 	implementation 'org.hibernate.validator:hibernate-validator'
 
+	implementation 'com.opencsv:opencsv:5.9'
+
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
