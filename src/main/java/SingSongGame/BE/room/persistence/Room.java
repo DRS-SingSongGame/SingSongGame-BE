@@ -52,4 +52,9 @@ public class Room {
 
     @OneToMany(mappedBy = "room")
     private List<InGame> inGames = new ArrayList<>();
+
+    public void updateGameStatus(GameStatus gameStatus) {
+        this.gameStatus = gameStatus;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

@@ -8,17 +8,14 @@ import SingSongGame.BE.common.response.ApiResponseGenerator;
 import SingSongGame.BE.common.response.MessageCode;
 import SingSongGame.BE.room.application.RoomService;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
+import SingSongGame.BE.room.application.dto.request.JoinRoomRequest;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
+import SingSongGame.BE.room.application.dto.response.JoinRoomResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -53,17 +50,23 @@ public class RoomController {
     }
 
     @Operation(summary = "방 참여")
-    @PostMapping("/{roomId}/enter")
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> enterRoom() {
-        // 구현 필요
-        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.UPDATE);
+    @PostMapping("/join")
+    public ApiResponse<ApiResponseBody.SuccessBody<JoinRoomResponse>> joinRoom(
+            @RequestBody JoinRoomRequest request,
+            @LoginUser User user) {
+        
+        JoinRoomResponse response = roomService.joinRoom(request, user);
+        return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.SUCCESS);
     }
 
     @Operation(summary = "방 나가기")
-    @PostMapping("/{roomId}/exit")
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> exitRoom() {
-        // 구현 필요
-        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.UPDATE);
+    @DeleteMapping("/{roomId}/leave")
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> leaveRoom(
+            @PathVariable Long roomId,
+            @LoginUser User user) {
+        
+        roomService.leaveRoom(roomId, user);
+        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
     }
 
     // 채팅 controller 구현 필요
