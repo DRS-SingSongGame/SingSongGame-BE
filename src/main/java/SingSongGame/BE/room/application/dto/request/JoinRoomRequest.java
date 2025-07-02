@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JoinRoomRequest {
-    private Long roomId;
+    //private Long roomId;
     private Integer password; // 비밀번호가 있는 방의 경우
 } 

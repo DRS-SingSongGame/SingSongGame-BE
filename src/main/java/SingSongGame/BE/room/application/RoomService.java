@@ -54,8 +54,8 @@ public class RoomService {
     }
 
     @Transactional
-    public JoinRoomResponse joinRoom(JoinRoomRequest request, User user) {
-        Room room = roomRepository.findById(request.getRoomId())
+    public JoinRoomResponse joinRoom(JoinRoomRequest request, User user, Long roomId) {
+        Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
         
         // 방 상태 확인
@@ -68,8 +68,10 @@ public class RoomService {
         }
         
         // 비밀번호 확인
-        if (room.getIsPrivate() && !room.getPassword().equals(request.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        if (room.getIsPrivate()) {
+            if (room.getPassword().equals(request.getPassword())){
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
         }
         
         // 방 인원 수 확인
@@ -96,7 +98,9 @@ public class RoomService {
         
         // 현재 방 인원 수 다시 조회
         currentPlayerCount = inGameRepository.countByRoom(room);
-        
+//        if (currentPlayerCount == room.getMaxPlayer()) {
+//            room.getGameStatus().name() = String.valueOf(GameStatus.FULL);
+//        }
         return JoinRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
@@ -104,7 +108,6 @@ public class RoomService {
                 .currentPlayerCount((int) currentPlayerCount)
                 .maxPlayer(room.getMaxPlayer())
                 .gameStatus(room.getGameStatus().name())
-                .isHost(room.getHost().getId().equals(user.getId()))
                 .build();
     }
 
