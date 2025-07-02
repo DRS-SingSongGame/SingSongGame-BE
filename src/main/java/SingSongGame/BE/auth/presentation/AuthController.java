@@ -79,17 +79,13 @@ public class AuthController {
         response.sendRedirect("http://localhost:3000/lobby"); // or nickname
     }
 
-    @PatchMapping("/nickname")
-    public ApiResponse<ApiResponseBody.SuccessBody<UserResponse>> setNickname(
+    @PutMapping("/nickname")
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> setNickname(
             @RequestBody NameRequest request,
             @LoginUser User user) {
 
-        User updatedUser = userService.updateName(user.getId(), request.getName());
-        return ApiResponseGenerator.success(
-                new UserResponse(updatedUser),
-                HttpStatus.OK,
-                MessageCode.UPDATE
-        );
+        userService.updateName(user.getId(), request.getName());
+        return ApiResponseGenerator.success(HttpStatus.OK,  MessageCode.UPDATE);
     }
 
     @GetMapping("/nickname")

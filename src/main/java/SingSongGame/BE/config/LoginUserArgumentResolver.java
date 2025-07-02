@@ -27,6 +27,7 @@ public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver 
                 parameter.getParameterType().equals(User.class);
     }
 
+    // 추후 리팩토링 때 헤더에 관리. access 쿠키에 관리 refresh는 레디스에서 관리
     @Override
     public Object resolveArgument(MethodParameter parameter,
                                   ModelAndViewContainer mavContainer,
