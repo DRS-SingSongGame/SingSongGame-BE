@@ -16,5 +16,4 @@ public class JoinRoomResponse {
     private Integer currentPlayerCount;
     private Integer maxPlayer;
     private String gameStatus;
-    private Boolean isHost;
 } 

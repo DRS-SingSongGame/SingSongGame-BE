@@ -23,6 +23,12 @@ public class UserService {
                 .orElse(null);
     }
 
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                             .orElse(null);
+    }
+
     @Transactional
     public void updateName(Long userId, String username) {
         User user = userRepository.findById(userId)

@@ -50,12 +50,13 @@ public class RoomController {
     }
 
     @Operation(summary = "방 참여")
-    @PostMapping("/join")
+    @PostMapping("/join/{roomId}")
     public ApiResponse<ApiResponseBody.SuccessBody<JoinRoomResponse>> joinRoom(
             @RequestBody JoinRoomRequest request,
-            @LoginUser User user) {
+            @LoginUser User user,
+            @PathVariable("roomId") Long roomId) {
         
-        JoinRoomResponse response = roomService.joinRoom(request, user);
+        JoinRoomResponse response = roomService.joinRoom(request, user, roomId);
         return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.SUCCESS);
     }
 
