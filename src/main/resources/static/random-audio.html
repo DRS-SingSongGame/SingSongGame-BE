@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎵 랜덤 음악 재생</title>
+</head>
+<body>
+<h2>🎶 랜덤 곡 재생 테스트</h2>
+
+<button onclick="fetchRandomSong()">랜덤 곡 가져오기</button>
+
+<p id="song-info">곡 정보 없음</p>
+
+<audio id="audio-player" controls autoplay>
+  <source id="audio-source" src="" type="audio/mpeg">
+  브라우저가 오디오를 지원하지 않습니다.
+</audio>
+
+<script>
+  async function fetchRandomSong() {
+    try {
+      const response = await fetch('http://localhost:8080/api/song/random');
+      const data = await response.json();
+
+      // 곡 정보 출력
+      document.getElementById('song-info').innerText =
+              `🎵 ${data.title} - ${data.artist}`;
+
+      // 오디오 URL 주입
+      const audio = document.getElementById('audio-player');
+      const source = document.getElementById('audio-source');
+      source.src = data.audioUrl;
+      audio.load(); // 태그에 source 갱신 후 필수
+      audio.play();
+    } catch (err) {
+      console.error('곡을 가져오는 중 오류 발생:', err);
+      alert('오류가 발생했습니다.');
+    }
+  }
+</script>
+</body>
+</html>
