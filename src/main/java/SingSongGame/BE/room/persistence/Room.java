@@ -2,6 +2,7 @@ package SingSongGame.BE.room.persistence;
 
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.in_game.persistence.InGame;
+import SingSongGame.BE.song.persistence.Song;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -43,6 +44,12 @@ public class Room {
     @Enumerated(EnumType.STRING)
     private GameStatus gameStatus;
 
+    private Integer currentRound;
+
+    @ManyToOne
+    @JoinColumn(name = "current_song_id")
+    private Song currentSong;
+
     @ManyToOne
     @JoinColumn(name = "host_id")
     private User host;
@@ -56,5 +63,15 @@ public class Room {
     public void updateGameStatus(GameStatus gameStatus) {
         this.gameStatus = gameStatus;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateCurrentRoundAndSong(Integer currentRound, Song currentSong) {
+        this.currentRound = currentRound;
+        this.currentSong = currentSong;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Room(Long id) {
+        this.id = id;
     }
 }

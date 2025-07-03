@@ -1,42 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>🎵 랜덤 음악 재생</title>
+    <meta charset="UTF-8">
+    <title>🎮 게임 테스트 페이지</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        .input-group { margin-bottom: 10px; }
+        #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+        .message { margin-bottom: 5px; }
+        .message.system { font-style: italic; color: #888; }
+        .message.correct { font-weight: bold; color: green; }
+    </style>
 </head>
 <body>
-<h2>🎶 랜덤 곡 재생 테스트</h2>
 
-<button onclick="fetchRandomSong()">랜덤 곡 가져오기</button>
+<div class="container">
+    <h2>🎮 게임 테스트 페이지</h2>
 
-<p id="song-info">곡 정보 없음</p>
+    <div class="input-group">
+        <label for="room-id">방 ID: </label>
+        <input type="text" id="room-id" value="1">
+        <button onclick="connect()">🔗 연결</button>
+        <button onclick="disconnect()" disabled>❌ 연결 끊기</button>
+    </div>
 
-<audio id="audio-player" controls autoplay>
-  <source id="audio-source" src="" type="audio/mpeg">
-  브라우저가 오디오를 지원하지 않습니다.
-</audio>
+    <hr>
+
+    <h3>방 생성</h3>
+    <div class="input-group">
+        <label for="create-room-name">방 이름: </label>
+        <input type="text" id="create-room-name" value="새로운 방">
+    </div>
+    <div class="input-group">
+        <label for="create-room-type">방 타입: </label>
+        <select id="create-room-type">
+            <option value="RANDOM_SONG">RANDOM_SONG</option>
+            <option value="PLAIN_SONG">PLAIN_SONG</option>
+            <option value="KEY_SING_YOU">KEY_SING_YOU</option>
+        </select>
+    </div>
+    <div class="input-group">
+        <label for="create-room-private">비공개: </label>
+        <input type="checkbox" id="create-room-private">
+    </div>
+    <div class="input-group">
+        <label for="create-room-password">비밀번호 (선택): </label>
+        <input type="number" id="create-room-password">
+    </div>
+    <div class="input-group">
+        <label for="create-room-max-player">최대 인원: </label>
+        <input type="number" id="create-room-max-player" value="4" min="2" max="8">
+    </div>
+    <button onclick="createRoom()">➕ 방 생성</button>
+
+    <div class="input-group">
+        <button id="start-game-btn" onclick="startGame()" disabled>🚀 게임 시작</button>
+    </div>
+
+    <hr>
+
+    <div id="game-area" style="display: none;">
+        <h3>📢 공지</h3>
+        <div id="notice"></div>
+        
+        <h3>🎵 현재 곡 정보</h3>
+        <p id="song-info">대기 중...</p>
+        <audio id="audio-player" controls></audio>
+
+        <h3>💬 채팅 및 정답 입력</h3>
+        <div id="messages"></div>
+        <div class="input-group">
+            <input type="text" id="chat-input" placeholder="정답을 입력하세요..." onkeyup="if(event.keyCode===13)sendAnswer();">
+            <button onclick="sendAnswer()">전송</button>
+        </div>
+    </div>
+</div>
 
 <script>
-  async function fetchRandomSong() {
-    try {
-      const response = await fetch('http://localhost:8080/api/song/random');
-      const data = await response.json();
+    let stompClient = null;
+    let roomId = null;
 
-      // 곡 정보 출력
-      document.getElementById('song-info').innerText =
-              `🎵 ${data.title} - ${data.artist}`;
+    function connect() {
+        roomId = document.getElementById('room-id').value;
+        if (!roomId) {
+            alert("방 ID를 입력하세요.");
+            return;
+        }
 
-      // 오디오 URL 주입
-      const audio = document.getElementById('audio-player');
-      const source = document.getElementById('audio-source');
-      source.src = data.audioUrl;
-      audio.load(); // 태그에 source 갱신 후 필수
-      audio.play();
-    } catch (err) {
-      console.error('곡을 가져오는 중 오류 발생:', err);
-      alert('오류가 발생했습니다.');
+        const socket = new SockJS('/api/ws/chat'); // WebSocket 핸드셰이크 엔드포인트
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            setConnected(true);
+
+            // 게임 시작 공지 구독
+            stompClient.subscribe('/topic/room/' + roomId + '/game-start', function (response) {
+                const body = JSON.parse(response.body);
+                displayNotice(`게임이 ${body.countdownSeconds}초 후에 시작됩니다!`);
+            });
+
+            // 다음 라운드 정보 구독
+            stompClient.subscribe('/topic/room/' + roomId + '/round-start', function (response) {
+                const body = JSON.parse(response.body);
+                displayRoundInfo(body);
+            });
+            
+            // 정답 결과 구독
+            stompClient.subscribe('/topic/room/' + roomId + '/answer', function (response) {
+                const body = JSON.parse(response.body);
+                displayMessage(`${body.username}님이 정답을 맞췄습니다! (정답: ${body.correctAnswer})`, 'correct');
+            });
+
+            // 일반 채팅 메시지 구독 (대기실용)
+            stompClient.subscribe('/topic/room/' + roomId, function (response) {
+                const body = JSON.parse(response.body);
+                displayMessage(`${body.senderName}: ${body.message}`);
+            });
+
+        }, function(error) {
+            console.error('STOMP error', error);
+            alert('연결에 실패했습니다. 서버 로그를 확인하세요.');
+        });
     }
-  }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            stompClient.disconnect();
+        }
+        setConnected(false);
+        console.log("Disconnected");
+    }
+
+    function setConnected(connected) {
+        document.getElementById('start-game-btn').disabled = !connected;
+        document.querySelector('button[onclick="connect()"]').disabled = connected;
+        document.querySelector('button[onclick="disconnect()"]').disabled = !connected;
+        document.getElementById('game-area').style.display = connected ? 'block' : 'none';
+    }
+
+    async function startGame() {
+        try {
+            const response = await fetch(`/api/in-game/${roomId}/start`, { method: 'POST' });
+            if (!response.ok) {
+                throw new Error('게임 시작 요청 실패');
+            }
+            console.log("게임 시작 요청 성공");
+            displayNotice("게임 시작 요청을 보냈습니다. 카운트다운을 기다리세요...");
+        } catch (error) {
+            console.error('Error starting game:', error);
+            alert('게임 시작에 실패했습니다.');
+        }
+    }
+
+    function sendAnswer() {
+        const chatInput = document.getElementById('chat-input');
+        const message = chatInput.value;
+        if (message && stompClient) {
+            // 게임 중 채팅은 정답 확인용 엔드포인트로 전송
+            stompClient.send(`/api/app/in-game/${roomId}/chat`, {}, JSON.stringify({'message': message}));
+            
+            // 대기실 채팅은 별도 엔드포인트로 전송 (필요시 활성화)
+            stompClient.send(`/app/room/${roomId}/chat`, {}, JSON.stringify({'message': message}));
+
+            chatInput.value = '';
+        }
+    }
+    
+    function displayNotice(message) {
+        document.getElementById('notice').innerHTML = message;
+    }
+
+    function displayRoundInfo(roundData) {
+        // TODO: 서버에서 내려주는 실제 데이터 구조에 맞게 수정 필요
+        // 예시: roundData = { audioUrl: '...', hint: '...' }
+        const songInfo = document.getElementById('song-info');
+        const audioPlayer = document.getElementById('audio-player');
+        
+        songInfo.innerText = `힌트: ${roundData.hint || '없음'}`;
+        audioPlayer.src = roundData.audioUrl;
+        audioPlayer.load();
+        audioPlayer.play();
+        
+        displayMessage(`새 라운드가 시작되었습니다!`, 'system');
+    }
+
+    function displayMessage(message, type = 'normal') {
+        const messagesDiv = document.getElementById('messages');
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', type);
+        messageElement.textContent = message;
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // 자동 스크롤
+    }
+
+    async function createRoom() {
+        const name = document.getElementById('create-room-name').value;
+        const roomType = document.getElementById('create-room-type').value;
+        const isPrivate = document.getElementById('create-room-private').checked;
+        const roomPassword = document.getElementById('create-room-password').value;
+        const maxPlayer = document.getElementById('create-room-max-player').value;
+
+        const requestBody = {
+            name: name,
+            roomType: roomType,
+            isPrivate: isPrivate,
+            maxPlayer: parseInt(maxPlayer)
+        };
+
+        if (isPrivate && roomPassword) {
+            requestBody.roomPassword = parseInt(roomPassword);
+        }
+
+        try {
+            const response = await fetch('/api/room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '방 생성 실패');
+            }
+
+            const responseData = await response.json();
+            const createdRoomId = responseData.data.roomId;
+            document.getElementById('room-id').value = createdRoomId;
+            alert(`방이 성공적으로 생성되었습니다! 방 ID: ${createdRoomId}`);
+            connect(); // 방 생성 후 바로 연결
+        } catch (error) {
+            console.error('Error creating room:', error);
+            alert(`방 생성에 실패했습니다: ${error.message}`);
+        }
+    }
+
 </script>
 </body>
 </html>
