@@ -15,7 +15,6 @@ public class RoomRequestConverter {
                    .room(request.getRoomType())
                    .isPrivate(request.getIsPrivate())
                    .password(request.getRoomPassword())
-                   .maxPlayer(request.getMaxPlayer())
                    .gameStatus(GameStatus.valueOf("WAITING"))
                    .host(host) // 소셜 로그인 구현 후 수정 필요.
                    .build();

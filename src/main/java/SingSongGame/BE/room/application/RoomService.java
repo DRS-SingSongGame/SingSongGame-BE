@@ -6,6 +6,7 @@ import SingSongGame.BE.room.application.converter.RoomResponseConverter;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
 import SingSongGame.BE.room.application.dto.request.JoinRoomRequest;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
+import SingSongGame.BE.room.application.dto.response.ExitRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import SingSongGame.BE.room.application.dto.response.JoinRoomResponse;
 import SingSongGame.BE.room.persistence.GameStatus;
@@ -31,13 +32,10 @@ public class RoomService {
     private final RoomChatService roomChatService;
     private final RoomRequestConverter requestConverter;
     private final RoomResponseConverter responseConverter;
-    //private final AuthRepository authRepository;
 
     @Transactional
-    public CreateRoomResponse createRoom(CreateRoomRequest request, User loginUser) {
-        //User host = authRepository.findById(request.getHostId())
-        //        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-        Room room = requestConverter.toEntity(request, loginUser);
+    public CreateRoomResponse createRoom(CreateRoomRequest request, User hostUser) {
+        Room room = requestConverter.toEntity(request, hostUser);
         Long saveId = roomRepository.save(room).getId();
         return responseConverter.from(saveId);
     }
@@ -112,7 +110,7 @@ public class RoomService {
     }
 
     @Transactional
-    public void leaveRoom(Long roomId, User user) {
+    public ExitRoomResponse leaveRoom(Long roomId, User user) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
         
@@ -128,5 +126,17 @@ public class RoomService {
         if (room.getHost().getId().equals(user.getId())) {
             room.updateGameStatus(GameStatus.DELETED);
         }
+
+        Long restNumber = inGameRepository.countByRoom(room);
+
+        List<User> users = inGameRepository.findAllByRoom(room).stream()
+                                           .map(x -> x.getUser())
+                                           .collect(Collectors.toList());
+
+        return ExitRoomResponse.builder()
+                               .currentPlayer(restNumber)
+                               .gameStatus(GameStatus.WAITING)
+                               .users(users)
+                               .build();
     }
 }
