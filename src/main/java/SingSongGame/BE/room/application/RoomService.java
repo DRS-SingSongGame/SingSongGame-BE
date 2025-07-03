@@ -106,6 +106,7 @@ public class RoomService {
                 .currentPlayerCount((int) currentPlayerCount)
                 .maxPlayer(room.getMaxPlayer())
                 .gameStatus(room.getGameStatus().name())
+                .roomType(room.getRoom()) // 어떤 게임인지 ex. 놀토 키싱유 AI평어
                 .build();
     }
 
