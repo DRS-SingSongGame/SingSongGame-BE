@@ -31,13 +31,10 @@ public class RoomService {
     private final RoomChatService roomChatService;
     private final RoomRequestConverter requestConverter;
     private final RoomResponseConverter responseConverter;
-    //private final AuthRepository authRepository;
 
     @Transactional
-    public CreateRoomResponse createRoom(CreateRoomRequest request, User loginUser) {
-        //User host = authRepository.findById(request.getHostId())
-        //        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-        Room room = requestConverter.toEntity(request, loginUser);
+    public CreateRoomResponse createRoom(CreateRoomRequest request, User hostUser) {
+        Room room = requestConverter.toEntity(request, hostUser);
         Long saveId = roomRepository.save(room).getId();
         return responseConverter.from(saveId);
     }
