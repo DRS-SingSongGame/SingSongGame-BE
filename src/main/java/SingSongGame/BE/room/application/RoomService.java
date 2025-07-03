@@ -6,6 +6,7 @@ import SingSongGame.BE.room.application.converter.RoomResponseConverter;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
 import SingSongGame.BE.room.application.dto.request.JoinRoomRequest;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
+import SingSongGame.BE.room.application.dto.response.ExitRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import SingSongGame.BE.room.application.dto.response.JoinRoomResponse;
 import SingSongGame.BE.room.persistence.GameStatus;
@@ -105,11 +106,12 @@ public class RoomService {
                 .currentPlayerCount((int) currentPlayerCount)
                 .maxPlayer(room.getMaxPlayer())
                 .gameStatus(room.getGameStatus().name())
+                .roomType(room.getRoom()) // 어떤 게임인지 ex. 놀토 키싱유 AI평어
                 .build();
     }
 
     @Transactional
-    public void leaveRoom(Long roomId, User user) {
+    public ExitRoomResponse leaveRoom(Long roomId, User user) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
         
@@ -125,5 +127,17 @@ public class RoomService {
         if (room.getHost().getId().equals(user.getId())) {
             room.updateGameStatus(GameStatus.DELETED);
         }
+
+        Long restNumber = inGameRepository.countByRoom(room);
+
+        List<User> users = inGameRepository.findAllByRoom(room).stream()
+                                           .map(x -> x.getUser())
+                                           .collect(Collectors.toList());
+
+        return ExitRoomResponse.builder()
+                               .currentPlayer(restNumber)
+                               .gameStatus(GameStatus.WAITING)
+                               .users(users)
+                               .build();
     }
 }

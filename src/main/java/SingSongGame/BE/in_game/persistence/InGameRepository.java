@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,5 +24,5 @@ public interface InGameRepository extends JpaRepository<InGame, Long> {
     
     // 특정 방의 모든 참가자 조회
     @Query("SELECT ig FROM InGame ig WHERE ig.room = :room")
-    java.util.List<InGame> findAllByRoom(@Param("room") Room room);
+    List<InGame> findAllByRoom(@Param("room") Room room);
 }
