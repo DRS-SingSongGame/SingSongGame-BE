@@ -99,10 +99,17 @@ public class RoomService {
 //        if (currentPlayerCount == room.getMaxPlayer()) {
 //            room.getGameStatus().name() = String.valueOf(GameStatus.FULL);
 //        }
+
+        List<User> users = inGameRepository.findAllByRoom(room).stream()
+                                           .map(x -> x.getUser())
+                                           .collect(Collectors.toList());
+
+
         return JoinRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
                 .hostName(room.getHost().getName())
+                .users(users)
                 .currentPlayerCount((int) currentPlayerCount)
                 .maxPlayer(room.getMaxPlayer())
                 .gameStatus(room.getGameStatus().name())
