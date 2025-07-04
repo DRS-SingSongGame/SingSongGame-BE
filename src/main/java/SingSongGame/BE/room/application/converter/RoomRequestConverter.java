@@ -12,10 +12,10 @@ public class RoomRequestConverter {
     public Room toEntity(CreateRoomRequest request, User host) {
         return Room.builder()
                    .name(request.getName())
-                   .room(request.getRoomType())
+                   .roomType(request.getRoomType())
                    .isPrivate(request.getIsPrivate())
                    .password(request.getRoomPassword())
-                   .gameStatus(GameStatus.valueOf("WAITING"))
+                   .maxPlayer(request.getMaxPlayer())
                    .host(host) // 소셜 로그인 구현 후 수정 필요.
                    .build();
     }

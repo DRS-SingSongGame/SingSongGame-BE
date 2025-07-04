@@ -1,20 +1,10 @@
 package SingSongGame.BE.room.persistence;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.in_game.persistence.GameSession;
 import SingSongGame.BE.in_game.persistence.InGame;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,15 +23,11 @@ public class Room {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    private RoomType room;
-
+    private RoomType roomType;
 
     private Boolean isPrivate;
     private Integer password;
     private Integer maxPlayer;
-
-    @Enumerated(EnumType.STRING)
-    private GameStatus gameStatus;
 
     @ManyToOne
     @JoinColumn(name = "host_id")
@@ -53,8 +39,11 @@ public class Room {
     @OneToMany(mappedBy = "room")
     private List<InGame> inGames = new ArrayList<>();
 
-    public void updateGameStatus(GameStatus gameStatus) {
-        this.gameStatus = gameStatus;
-        this.updatedAt = LocalDateTime.now();
+    @Setter
+    @OneToOne(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private GameSession gameSession;
+
+    public Room(Long id) {
+        this.id = id;
     }
 }
