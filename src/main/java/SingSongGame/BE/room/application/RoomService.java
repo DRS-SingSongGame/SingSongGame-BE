@@ -104,19 +104,21 @@ public class RoomService {
                 .score(0) // 초기 점수 0으로 설정
                 .build();
         inGameRepository.save(inGame);
-
         // 방 입장 채팅 메시지 전송
         roomChatService.sendRoomEnterMessage(user, room.getId());
 
         // 현재 방 인원 수 다시 조회
         currentPlayerCount = inGameRepository.countByRoom(room);
 
+
         return JoinRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
                 .hostName(room.getHost().getName())
+                .users(users)
                 .currentPlayerCount((int) currentPlayerCount)
                 .maxPlayer(room.getMaxPlayer())
+
                 .gameStatus(currentStatus.name()) // GameSession의 상태 사용
                 .build();
     }
