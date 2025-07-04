@@ -21,6 +21,8 @@ public class RoomChatController {
 
     @MessageMapping("/room/chat")
     public void sendRoomMessage(@Payload RoomChatRequest request, SimpMessageHeaderAccessor headerAccessor) {
+
+
         // WebSocket 세션에서 사용자 정보 가져오기
         String username = headerAccessor.getUser() != null ? headerAccessor.getUser().getName() : null;
         

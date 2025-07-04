@@ -13,6 +13,7 @@ public record SongResponse(
         String audioUrl,
         List<String> tags,
         String hint,
+        String lyrics,
         Integer round
 ) {
     public Song toSongEntity() {
@@ -34,6 +35,7 @@ public record SongResponse(
                 song.getAudioUrl(),
                 song.getTags().stream().map(Tag::getName).collect(Collectors.toList()),
                 song.getHint(),
+                song.getLyrics(),
                 round
         );
     }

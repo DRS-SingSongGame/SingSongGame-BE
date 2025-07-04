@@ -33,7 +33,7 @@ public class RoomChatService {
                 .build();
 
         // 특정 방의 모든 사용자에게 메시지 전송
-        sendingOperations.convertAndSend("/topic/room/" + roomId, chatMessage);
+        sendingOperations.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
         
         log.info("방 채팅 메시지 전송: 방 {} - {}: {}", roomId, user.getName(), message);
     }
@@ -48,7 +48,7 @@ public class RoomChatService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        sendingOperations.convertAndSend("/topic/room/" + roomId, chatMessage);
+        sendingOperations.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
         log.info("방 입장 메시지 전송: 방 {} - {}", roomId, user.getName());
     }
 
@@ -62,7 +62,7 @@ public class RoomChatService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        sendingOperations.convertAndSend("/topic/room/" + roomId, chatMessage);
+        sendingOperations.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
         log.info("방 퇴장 메시지 전송: 방 {} - {}", roomId, user.getName());
     }
 } 
