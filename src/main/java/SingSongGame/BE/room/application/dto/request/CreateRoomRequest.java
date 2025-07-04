@@ -16,7 +16,7 @@ public class CreateRoomRequest {
     private Boolean isPrivate;
     private Integer roomPassword;
     private Integer currentPlayer;
-    //private Integer maxPlayer;
+    private Integer maxPlayer;
     //private String gameStatus;
 //    private Long hostId;
 }

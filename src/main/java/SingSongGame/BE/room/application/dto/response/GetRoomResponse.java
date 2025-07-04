@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,4 +22,5 @@ public class GetRoomResponse {
     private GameStatus gameStatus;
     private Long hostId;
     private String hostName;
+    private List<PlayerInfo> players;
 }

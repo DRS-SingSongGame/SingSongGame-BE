@@ -38,7 +38,8 @@ public class SongService {
                 randomSong.getArtist(),
                 randomSong.getAudioUrl(),
                 tagNames,
-                randomSong.getHint()
+                randomSong.getHint(),
+                null // 라운드 정보는 InGameService에서 설정
         );
     }
 
