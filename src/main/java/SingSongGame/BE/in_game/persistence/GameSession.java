@@ -39,7 +39,7 @@ public class GameSession {
     private boolean roundAnswered; // 현재 라운드 정답 여부
 
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "game_session_player_scores", joinColumns = @JoinColumn(name = "game_session_id"))
     @MapKeyColumn(name = "user_id")
     @Column(name = "score")
