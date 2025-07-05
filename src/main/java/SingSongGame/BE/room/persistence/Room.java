@@ -37,6 +37,7 @@ public class Room {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "room")
+    @Builder.Default
     private List<InGame> inGames = new ArrayList<>();
 
     @Setter
