@@ -30,23 +30,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setHeader("Access-Control-Allow-Credentials", "true");
 
         String token = jwtProvider.extractTokenFromCookie(request);
-        System.out.println("🔥 요청 URI: " + request.getRequestURI());
-        System.out.println("🔥 access_token 쿠키: " + token);
+
 
         if (token != null && jwtProvider.validateToken(token)) {
             Long userId = jwtProvider.getUserIdFromToken(token);
             User user = userRepository.findById(userId).orElse(null);
-            System.out.println("✅ userId: " + userId);
 
             if (user != null) {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(user, null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                System.out.println("✅ 인증 객체 설정 완료: " + user.getEmail());
             }
-            System.out.println("[DEBUG] 토큰: " + token);
-            System.out.println("[DEBUG] 유저 ID: " + userId);
-            System.out.println("[DEBUG] 인증 성공 여부: " + (user != null));
         }
 
         filterChain.doFilter(request, response);
