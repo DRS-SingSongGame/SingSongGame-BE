@@ -139,19 +139,37 @@ public class RoomService {
         InGame inGame = inGameRepository.findByRoomAndUser(room, user)
                 .orElseThrow(() -> new IllegalArgumentException("방에 입장해 있지 않습니다."));
 
-        // 방 퇴장 채팅 메시지 전송 (삭제 전에)
+        // 퇴장 메시지 전송
         roomChatService.sendRoomLeaveMessage(user, roomId);
 
+        // inGame은 user와 room을 동시에 가지고 있다.
         inGameRepository.delete(inGame);
 
-        // 방장이 나가는 경우 GameSession 삭제 및 Room의 gameSession 참조 null로 설정
-        if (room.getHost().getId().equals(user.getId())) {
-            gameSessionRepository.findById(roomId).ifPresent(gameSessionRepository::delete);
-            room.setGameSession(null); // Room의 gameSession 참조 null로 설정
-            roomRepository.save(room); // Room 변경사항 저장
-        }
-
+        // 남은 인원을 확인
         Long restNumber = inGameRepository.countByRoom(room);
+
+        // 방장 유/무 확인
+        boolean isHost = room.getHost().getId().equals(user.getId());
+
+        if (isHost) {
+            if (restNumber > 0) {
+                // 남은 사람이 있으면 첫 번째 인원에게 방장 권한을 위임
+                User nextHost = inGameRepository.findAllByRoom(room).get(0).getUser();
+                room.changeHost(nextHost);
+                //roomRepository.save(room);
+
+            } else {
+                // 남은 사람이 없으면 GameSession과 Room 삭제
+                gameSessionRepository.findById(roomId).ifPresent(gameSessionRepository::delete);
+                roomRepository.delete(room);
+                return ExitRoomResponse.builder()
+                                       .currentPlayer(0L)
+                                       .gameStatus(GameStatus.DELETED)
+                                       .users(List.of())
+                                       .hostName(room.getHost().getName())
+                                       .build();
+            }
+        }
 
         List<User> users = inGameRepository.findAllByRoom(room).stream()
                 .map(InGame::getUser)
