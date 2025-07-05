@@ -9,8 +9,11 @@ import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,10 +34,10 @@ public class SongCsvLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        Reader reader = Files.newBufferedReader(
-                Paths.get("src/main/resources/dataset.csv"),
+        Reader reader = new BufferedReader(new InputStreamReader(
+                new ClassPathResource("dataset.csv").getInputStream(),
                 StandardCharsets.UTF_8
-        );
+        ));
 
         CsvToBean<SongCSV> csvToBean = new CsvToBeanBuilder<SongCSV>(reader)
                 .withType(SongCSV.class)
