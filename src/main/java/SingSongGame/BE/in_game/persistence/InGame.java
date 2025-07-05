@@ -33,4 +33,8 @@ public class InGame {
     private User user;
 
     private Integer score;
+
+    public void updateScore(int newScore) {
+        this.score = newScore;
+    }
 }

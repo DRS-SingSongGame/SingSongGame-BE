@@ -32,7 +32,6 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        System.out.println("✅ OAuth2LoginSuccessHandler 호출됨");
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         LoginResponse loginResponse = authService.handleOAuthLogin(oAuth2User, response);
 
@@ -42,9 +41,6 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String redirectUri = (loginResponse.name() == null || loginResponse.name().isBlank())
                 ? baseUrl + "/nickname"
                 : baseUrl + "/lobby";
-
-        System.out.println("로그인 완료 - isFirstLogin: " + loginResponse.isFirstLogin());
-        System.out.println("리다이렉트 URI: " + redirectUri);
 
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }

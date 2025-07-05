@@ -36,4 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 
+# Google Cloud Credentials (ONLY ignore the JSON key file)
+src/main/resources/tts-key.json
+
 .env

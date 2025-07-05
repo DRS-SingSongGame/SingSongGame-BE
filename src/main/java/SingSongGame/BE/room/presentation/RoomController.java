@@ -42,6 +42,13 @@ public class RoomController {
         return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.GET);
     }
 
+    @Operation(summary = "특정 방 조회")
+    @GetMapping("/{roomId}")
+    public ApiResponse<ApiResponseBody.SuccessBody<GetRoomResponse>> getRoomById(@PathVariable Long roomId) {
+        GetRoomResponse response = roomService.getRoomById(roomId); // roomService에 getRoomById 메서드가 있다고 가정
+        return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.GET);
+    }
+
     @Operation(summary = "방 수정")
     @PutMapping("/{roomId}")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> updateRoom() {
@@ -50,7 +57,7 @@ public class RoomController {
     }
 
     @Operation(summary = "방 참여")
-    @PostMapping("/join/{roomId}")
+    @PostMapping("/{roomId}/join")
     public ApiResponse<ApiResponseBody.SuccessBody<JoinRoomResponse>> joinRoom(
             @RequestBody JoinRoomRequest request,
             @LoginUser User user,
@@ -63,8 +70,8 @@ public class RoomController {
     @Operation(summary = "방 나가기")
     @DeleteMapping("/{roomId}/leave")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> leaveRoom(
-            @PathVariable Long roomId,
-            @LoginUser User user) {
+            @LoginUser User user,
+            @PathVariable("roomId") Long roomId) {
         
         roomService.leaveRoom(roomId, user);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
