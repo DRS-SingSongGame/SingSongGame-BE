@@ -1,6 +1,7 @@
 package SingSongGame.BE.room.application.dto.response;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.room.persistence.RoomType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,4 +21,5 @@ public class JoinRoomResponse {
     private Integer currentPlayerCount;
     private Integer maxPlayer;
     private String gameStatus; // 진행중 대기중 삭제됨 꽉찬방
+    private RoomType roomType;
 } 
