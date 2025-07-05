@@ -39,12 +39,15 @@ public class RoomChatService {
     }
 
     public void sendRoomEnterMessage(User user, Long roomId) {
+        Room room = roomRepository.findById(roomId)
+                                  .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+
         RoomChatMessage chatMessage = RoomChatMessage.builder()
                 .roomId(roomId)
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 입장하셨습니다.")
-                .messageType("ENTER")
+                .messageType("TALK")
                 .timestamp(LocalDateTime.now())
                 .build();
 

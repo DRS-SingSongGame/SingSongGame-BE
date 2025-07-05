@@ -10,6 +10,7 @@ import SingSongGame.BE.room.application.converter.RoomRequestConverter;
 import SingSongGame.BE.room.application.converter.RoomResponseConverter;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
 import SingSongGame.BE.room.application.dto.request.JoinRoomRequest;
+import SingSongGame.BE.room.application.dto.request.UserReadyStatusRequest;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.application.dto.response.ExitRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
@@ -106,7 +107,7 @@ public class RoomService {
         inGameRepository.save(inGame);
 
         // 방 입장 채팅 메시지 전송
-        roomChatService.sendRoomEnterMessage(user, room.getId());
+        roomChatService.sendRoomEnterMessage(user, roomId);
 
         // 현재 방 인원 수 다시 조회
         currentPlayerCount = inGameRepository.countByRoom(room);
@@ -185,5 +186,15 @@ public class RoomService {
                 .gameStatus(finalStatus)
                 .users(users)
                 .build();
+    }
+
+    public void readyGame(User user, UserReadyStatusRequest request, Long roomId) {
+        Room room = roomRepository.findById(roomId)
+                                  .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+
+        InGame inGame = inGameRepository.findByRoomAndUser(room, user)
+                                        .orElseThrow(() -> new IllegalArgumentException("방에 입장해 있지 않습니다."));
+
+        inGame.updateReady(request.getUserReadyStatus());
     }
 }

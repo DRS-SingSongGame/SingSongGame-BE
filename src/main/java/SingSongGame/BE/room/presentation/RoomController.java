@@ -9,6 +9,7 @@ import SingSongGame.BE.common.response.MessageCode;
 import SingSongGame.BE.room.application.RoomService;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
 import SingSongGame.BE.room.application.dto.request.JoinRoomRequest;
+import SingSongGame.BE.room.application.dto.request.UserReadyStatusRequest;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import SingSongGame.BE.room.application.dto.response.JoinRoomResponse;
@@ -44,7 +45,7 @@ public class RoomController {
 
     @Operation(summary = "특정 방 조회")
     @GetMapping("/{roomId}")
-    public ApiResponse<ApiResponseBody.SuccessBody<GetRoomResponse>> getRoomById(@PathVariable Long roomId) {
+    public ApiResponse<ApiResponseBody.SuccessBody<GetRoomResponse>> getRoomById(@PathVariable("roomId") Long roomId) {
         GetRoomResponse response = roomService.getRoomById(roomId); // roomService에 getRoomById 메서드가 있다고 가정
         return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.GET);
     }
@@ -75,6 +76,18 @@ public class RoomController {
         
         roomService.leaveRoom(roomId, user);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
+    }
+
+    @Operation(summary = "게임 준비")
+    @PostMapping("/{roomId}/ready")
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> readyRoom(
+            @LoginUser User user,
+            @RequestBody UserReadyStatusRequest request,
+            @PathVariable("roomId") Long roomId) {
+
+        roomService.readyGame(user, request, roomId);
+
+
     }
 
     // 채팅 controller 구현 필요

@@ -34,7 +34,13 @@ public class InGame {
 
     private Integer score;
 
+    private Boolean ready;
+
     public void updateScore(int newScore) {
         this.score = newScore;
+    }
+
+    public void updateReady(Boolean curStatus) {
+        this.ready = curStatus;
     }
 }

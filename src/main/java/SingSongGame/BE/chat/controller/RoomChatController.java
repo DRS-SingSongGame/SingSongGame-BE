@@ -26,16 +26,6 @@ public class RoomChatController {
     @MessageMapping("/room/{roomId}/chat")
     public void sendRoomMessage(@Payload RoomChatRequest request, SimpMessageHeaderAccessor headerAccessor , @DestinationVariable("roomId") Long roomId) {
 
-
-        // WebSocket 세션에서 사용자 정보 가져오기
-//        String username = headerAccessor.getUser() != null ? headerAccessor.getUser().getName() : null;
-//
-//        log.info("방 채팅 사용자 정보: {}", username);
-//
-//        if (username == null) {
-//            log.warn("사용자 정보가 없습니다. 방 채팅 메시지 전송을 건너뜁니다.");
-//            return;
-//        }
         Principal auth = headerAccessor.getUser();
         String email = null;
 
@@ -54,12 +44,7 @@ public class RoomChatController {
         
         // 사용자 이름으로 User 객체 조회
         User user = userService.findByEmail(email);
-//        if (user == null) {
-//            log.warn("사용자를 찾을 수 없습니다: {}", username);
-//            return;
-//        }
 
-        log.info("방 채팅 메시지: 방 {} - {}: {}", roomId, user.getName(), request.getMessage());
         roomChatService.sendRoomMessage(user, roomId, request.getMessage());
     }
 } 
