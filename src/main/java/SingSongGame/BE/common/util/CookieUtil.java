@@ -19,7 +19,6 @@ public class CookieUtil {
         } else {
             cookie.append(" SameSite=Lax;"); // ✅ 로컬에서는 이게 안전함
         }
-        System.out.println("[Set-Cookie] " + cookie.toString());
 
         response.addHeader("Set-Cookie", cookie.toString());
     }
