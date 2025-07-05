@@ -48,11 +48,17 @@ public class SongService {
         Song song = songRepository.findById(request.songId())
                 .orElseThrow(() -> new IllegalArgumentException("해당 곡이 존재하지 않습니다."));
 
-        String correctAnswer = song.getAnswer().trim().toLowerCase();
-        String userInput = request.userAnswer().trim().toLowerCase();
+        String correctAnswer = normalize(song.getAnswer());
+        String userInput = normalize(request.userAnswer());
 
         boolean isCorrect = correctAnswer.equals(userInput);
 
-        return new SongVerifyResponse(isCorrect, song.getAnswer());
+        return new SongVerifyResponse(isCorrect, song.getTitle());
+    }
+
+    private String normalize(String input) {
+        return input
+                .toLowerCase()          // 대소문자 무시
+                .replaceAll("[^a-z0-9가-힣]", "");
     }
 }
