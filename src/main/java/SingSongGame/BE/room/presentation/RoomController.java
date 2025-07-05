@@ -57,7 +57,7 @@ public class RoomController {
     }
 
     @Operation(summary = "방 참여")
-    @PostMapping("/join/{roomId}")
+    @PostMapping("/{roomId}/join")
     public ApiResponse<ApiResponseBody.SuccessBody<JoinRoomResponse>> joinRoom(
             @RequestBody JoinRoomRequest request,
             @LoginUser User user,
@@ -70,8 +70,8 @@ public class RoomController {
     @Operation(summary = "방 나가기")
     @DeleteMapping("/{roomId}/leave")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> leaveRoom(
-            @PathVariable Long roomId,
-            @LoginUser User user) {
+            @LoginUser User user,
+            @PathVariable("roomId") Long roomId) {
         
         roomService.leaveRoom(roomId, user);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);

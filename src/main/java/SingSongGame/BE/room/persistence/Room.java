@@ -46,4 +46,10 @@ public class Room {
     public Room(Long id) {
         this.id = id;
     }
+
+
+
+    public void changeHost(User newHost) {
+        this.host = newHost;
+    }
 }
