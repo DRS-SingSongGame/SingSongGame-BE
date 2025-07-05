@@ -10,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -19,14 +21,26 @@ public class SongService {
 
     private final SongRepository songRepository;
 
-    @Transactional
     public SongResponse getRandomSong() {
-        List<Song> allSongs = songRepository.findAll();
-        if (allSongs.isEmpty()) {
-            return null;
+        return getRandomSong(Collections.emptySet());
+    }
+
+    @Transactional
+    public SongResponse getRandomSong(Set<Long> usedSongIds) {
+        List<Song> candidates;
+
+        if (usedSongIds.isEmpty()) {
+            // 아무 것도 제외할 게 없으면 전체 목록 사용
+            candidates = songRepository.findAll();
+        } else {
+            candidates = songRepository.findAllExcluding(usedSongIds);
         }
 
-        Song randomSong = allSongs.get(new Random().nextInt(allSongs.size()));
+        if (candidates.isEmpty()) {
+            return null; // 더 이상 출제할 노래가 없음
+        }
+
+        Song randomSong = candidates.get(new Random().nextInt(candidates.size()));
 
         List<String> tagNames = randomSong.getTags().stream()
                 .map(Tag::getName)

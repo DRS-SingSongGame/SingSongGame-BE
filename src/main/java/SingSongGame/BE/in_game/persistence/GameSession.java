@@ -8,10 +8,13 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -46,6 +49,11 @@ public class GameSession {
     @Builder.Default
     private Map<Long, Integer> playerScores = new HashMap<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Builder.Default
+    private Set<Long> usedSongIds = new HashSet<>();
+
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -70,6 +78,17 @@ public class GameSession {
 
     public void updatePlayerScore(Long userId, Integer score) {
         this.playerScores.put(userId, score);
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void resetForNewGame() {
+        this.currentRound = 0;
+        this.currentSong = null;
+        this.roundStartTime = null;
+        this.roundAnswered = false;
+        this.playerScores.clear();
+        this.usedSongIds.clear();
+        this.gameStatus = GameStatus.WAITING; // 또는 READY, 룸 상태와 맞춰서
         this.updatedAt = LocalDateTime.now();
     }
 }
