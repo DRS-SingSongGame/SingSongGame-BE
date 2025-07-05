@@ -86,7 +86,7 @@ public class RoomController {
             @PathVariable("roomId") Long roomId) {
 
         roomService.readyGame(user, request, roomId);
-
+        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
 
     }
 

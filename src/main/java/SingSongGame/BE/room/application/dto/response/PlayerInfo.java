@@ -13,4 +13,5 @@ public class PlayerInfo {
     private Long id;
     private String nickname;
     private String avatar;
+    private Boolean ready;
 }

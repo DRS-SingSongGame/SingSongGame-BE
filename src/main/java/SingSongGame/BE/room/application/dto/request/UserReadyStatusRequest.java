@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserReadyStatusRequest {
-    private Boolean userReadyStatus;
+    private Boolean ready;
 }

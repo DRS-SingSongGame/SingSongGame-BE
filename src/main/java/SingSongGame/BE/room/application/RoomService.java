@@ -188,6 +188,7 @@ public class RoomService {
                 .build();
     }
 
+    @Transactional
     public void readyGame(User user, UserReadyStatusRequest request, Long roomId) {
         Room room = roomRepository.findById(roomId)
                                   .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
@@ -195,6 +196,6 @@ public class RoomService {
         InGame inGame = inGameRepository.findByRoomAndUser(room, user)
                                         .orElseThrow(() -> new IllegalArgumentException("방에 입장해 있지 않습니다."));
 
-        inGame.updateReady(request.getUserReadyStatus());
+        inGame.updateReady(request.getReady());
     }
 }

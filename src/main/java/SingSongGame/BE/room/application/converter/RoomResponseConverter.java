@@ -32,6 +32,7 @@ public class RoomResponseConverter {
                         .id(inGame.getUser().getId())
                         .nickname(inGame.getUser().getName())
                         .avatar(inGame.getUser().getImageUrl())
+                        .ready(inGame.getReady())  // 여기서 준비 상태를 넘겨줘야 함.
                         .build())
                 .collect(Collectors.toList());
 
