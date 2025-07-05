@@ -1,6 +1,8 @@
 package SingSongGame.BE.in_game.application;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.in_game.dto.response.FinalResult;
+import SingSongGame.BE.in_game.dto.response.GameEndResponse;
 import SingSongGame.BE.in_game.dto.response.GameStartCountdownResponse;
 import SingSongGame.BE.in_game.dto.response.AnswerCorrectResponse;
 import SingSongGame.BE.in_game.persistence.InGame;
@@ -14,6 +16,10 @@ import SingSongGame.BE.song.application.SongService;
 import SingSongGame.BE.song.application.dto.response.SongResponse;
 import SingSongGame.BE.song.persistence.Song;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
@@ -23,6 +29,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 
@@ -34,12 +41,15 @@ public class InGameService {
     private static final int ROUND_DURATION_SECONDS = 30; // 각 라운드 지속 시간 (초)
     private static final int ANSWER_REVEAL_DURATION_SECONDS = 5; // 정답 공개 후 다음 라운드까지의 시간 (초)
 
+    private final Logger log = LoggerFactory.getLogger(InGameService.class);
+
     private final InGameRepository inGameRepository;
     private final RoomRepository roomRepository; // RoomRepository는 GameSession 생성 시 Room을 찾기 위해 필요
     private final GameSessionRepository gameSessionRepository;
     private final SimpMessageSendingOperations messagingTemplate;
     private final SongService songService;
     private final TaskScheduler taskScheduler;
+    private final ApplicationContext applicationContext;
 
     private final Map<Long, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
 
@@ -80,7 +90,7 @@ public class InGameService {
                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
         if (gameSession.getCurrentRound() >= TOTAL_ROUNDS) {
-            endGame(roomId);
+            applicationContext.getBean(InGameService.class).endGame(roomId);
             return;
         }
 
@@ -137,7 +147,7 @@ public class InGameService {
 
             // 정답 공개 메시지 전송 (정답 포함)
             String winnerName = (user != null) ? user.getName() : "익명 사용자";
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer()));
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle()));
 
             // 10초 후에 다음 라운드 시작 스케줄링
             ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
@@ -175,7 +185,15 @@ public class InGameService {
         gameSession.updateGameStatus(GameStatus.WAITING);
         gameSessionRepository.save(gameSession);
 
+        List<FinalResult> finalResults = gameSession.getPlayerScores().entrySet().stream()
+                .map(entry -> new FinalResult(entry.getKey(), entry.getValue()))
+                .toList();
+
+        GameEndResponse response = new GameEndResponse(finalResults);
+        log.info("🔥 Final Player Scores: {}", gameSession.getPlayerScores());
+        log.info("🔥 Final Results to send: {}", finalResults);
+
         // 클라이언트에게 게임 종료 메시지 전송
-        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-end", "게임이 종료되었습니다! 새로운 게임을 시작할 수 있습니다.");
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-end", response);
     }
 }

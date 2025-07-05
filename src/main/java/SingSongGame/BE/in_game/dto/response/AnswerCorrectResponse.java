@@ -12,4 +12,5 @@ import lombok.Setter;
 public class AnswerCorrectResponse {
     private String winnerNickname;
     private String correctAnswer;
+    private String correctTitle;
 }
