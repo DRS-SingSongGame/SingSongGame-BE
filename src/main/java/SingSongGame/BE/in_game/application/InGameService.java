@@ -160,7 +160,7 @@ public class InGameService {
         if (currentSong != null && normalizeAnswer(currentSong.getAnswer()).equals(normalizeAnswer(answer))) {
             // 정답 맞혔을 때
             int score = calculateScore(gameSession.getRoundStartTime());
-            applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
+            int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
 
             gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
             gameSessionRepository.save(gameSession);
@@ -174,7 +174,7 @@ public class InGameService {
 
             // 정답 공개 메시지 전송 (정답 포함)
             String winnerName = (user != null) ? user.getName() : "익명 사용자";
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores() ));
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores(), scoreGain ));
 
             // 10초 후에 다음 라운드 시작 스케줄링
             ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
@@ -190,10 +190,11 @@ public class InGameService {
 
     // 플레이어의 스코어를 증가시키는 메소드
     @Transactional
-    public void addScore(User user, Long roomId, int scoreToAdd) {
+    public int addScore(User user, Long roomId, int scoreToAdd) {
          InGame inGame = inGameRepository.findByUserAndRoom(user, new Room(roomId))
                  .orElseThrow(() -> new IllegalArgumentException("InGame 정보가 없습니다."));
 
+         int prevScore = inGame.getScore();
          int updateScore = inGame.getScore() + scoreToAdd;
          inGame.updateScore(updateScore);
 
@@ -202,6 +203,8 @@ public class InGameService {
                  .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
          gameSession.updatePlayerScore(user.getId(), updateScore);
          gameSessionRepository.save(gameSession);
+
+         return scoreToAdd;
     }
 
     @Transactional

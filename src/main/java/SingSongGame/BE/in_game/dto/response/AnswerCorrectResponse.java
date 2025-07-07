@@ -16,4 +16,5 @@ public class AnswerCorrectResponse {
     private String correctAnswer;
     private String correctTitle;
     Map<Long, Integer> updatedScores;
+    private int scoreGain;
 }
