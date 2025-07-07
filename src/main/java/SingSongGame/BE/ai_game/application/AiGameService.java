@@ -1,5 +1,6 @@
 package SingSongGame.BE.ai_game.application;
 
+import SingSongGame.BE.ai_game.dto.response.AiAnswerCorrectResponse;
 import SingSongGame.BE.ai_game.dto.response.AiGameStartCountdownResponse;
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.in_game.dto.response.AnswerCorrectResponse;
@@ -118,7 +119,7 @@ import java.util.concurrent.ScheduledFuture;
 
                 String winnerName = (user != null) ? user.getName() : "익명 사용자";
                 messagingTemplate.convertAndSend("/topic/ai-room/" + roomId + "/answer-correct",
-                        new AnswerCorrectResponse(winnerName, currentSong.getAnswer()));
+                        new AiAnswerCorrectResponse(winnerName, currentSong.getAnswer()));
 
                 ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(
                         () -> startNextRound(roomId),
