@@ -27,4 +27,6 @@ public interface InGameRepository extends JpaRepository<InGame, Long> {
     // 특정 방의 모든 참가자 조회
     @Query("SELECT ig FROM InGame ig WHERE ig.room = :room")
     List<InGame> findAllByRoom(@Param("room") Room room);
+
+    List<InGame> findByRoomId(Long roomId);
 }

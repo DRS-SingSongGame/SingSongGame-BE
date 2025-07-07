@@ -158,10 +158,10 @@ public class InGameService {
         }
 
         Song currentSong = gameSession.getCurrentSong();
-        if (currentSong != null && currentSong.getAnswer().equalsIgnoreCase(answer)) {
+        if (currentSong != null && normalizeAnswer(currentSong.getAnswer()).equals(normalizeAnswer(answer))) {
             // 정답 맞혔을 때
-            // int score = calculateScore(gameSession.getRoundStartTime());
-            // addScore(user, roomId, score);
+            int score = calculateScore(gameSession.getRoundStartTime());
+            applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
 
             gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
             gameSessionRepository.save(gameSession);
@@ -175,7 +175,7 @@ public class InGameService {
 
             // 정답 공개 메시지 전송 (정답 포함)
             String winnerName = (user != null) ? user.getName() : "익명 사용자";
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle()));
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores() ));
 
             // 10초 후에 다음 라운드 시작 스케줄링
             ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
@@ -192,17 +192,17 @@ public class InGameService {
     // 플레이어의 스코어를 증가시키는 메소드
     @Transactional
     public void addScore(User user, Long roomId, int scoreToAdd) {
-        // InGame inGame = inGameRepository.findByUserAndRoom(user, new Room(roomId))
-        //         .orElseThrow(() -> new IllegalArgumentException("InGame 정보가 없습니다."));
+         InGame inGame = inGameRepository.findByUserAndRoom(user, new Room(roomId))
+                 .orElseThrow(() -> new IllegalArgumentException("InGame 정보가 없습니다."));
 
-        // int updateScore = inGame.getScore() + scoreToAdd;
-        // inGame.updateScore(updateScore);
+         int updateScore = inGame.getScore() + scoreToAdd;
+         inGame.updateScore(updateScore);
 
-        // // GameSession의 플레이어 점수도 업데이트
-        // GameSession gameSession = gameSessionRepository.findById(roomId)
-        //         .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
-        // gameSession.updatePlayerScore(user.getId(), updateScore);
-        // gameSessionRepository.save(gameSession);
+         // GameSession의 플레이어 점수도 업데이트
+         GameSession gameSession = gameSessionRepository.findById(roomId)
+                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
+         gameSession.updatePlayerScore(user.getId(), updateScore);
+         gameSessionRepository.save(gameSession);
     }
 
     @Transactional
@@ -210,10 +210,7 @@ public class InGameService {
         GameSession gameSession = gameSessionRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
-        gameSession.updateGameStatus(GameStatus.WAITING);
-        gameSession.resetForNewGame();
-        gameSessionRepository.save(gameSession);
-
+        // ✅ 결과 먼저 계산
         List<FinalResult> finalResults = gameSession.getPlayerScores().entrySet().stream()
                 .map(entry -> new FinalResult(entry.getKey(), entry.getValue()))
                 .toList();
@@ -222,8 +219,26 @@ public class InGameService {
         log.info("🔥 Final Player Scores: {}", gameSession.getPlayerScores());
         log.info("🔥 Final Results to send: {}", finalResults);
 
-        // 클라이언트에게 게임 종료 메시지 전송
+        // ✅ 그 이후에 상태 초기화
+        gameSession.updateGameStatus(GameStatus.WAITING);
+        gameSession.resetForNewGame();
+        resetInGameScores(roomId);
+        gameSessionRepository.save(gameSession);
+
+        // ✅ 클라이언트에게 전송
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-end", response);
     }
 
+    @Transactional
+    public void resetInGameScores(Long roomId) {
+        List<InGame> inGameList = inGameRepository.findByRoomId(roomId);
+        for (InGame inGame : inGameList) {
+            inGame.setScore(0); // or inGame.resetScore()
+        }
+    }
+
+    private String normalizeAnswer(String input) {
+        return input == null ? "" : input.replaceAll("\\s+", "")  // 모든 공백 제거
+                .toLowerCase();           // 소문자화
+    }
 }
