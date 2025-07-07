@@ -44,7 +44,7 @@ public class RoomController {
 
     @Operation(summary = "특정 방 조회")
     @GetMapping("/{roomId}")
-    public ApiResponse<ApiResponseBody.SuccessBody<GetRoomResponse>> getRoomById(@PathVariable Long roomId) {
+    public ApiResponse<ApiResponseBody.SuccessBody<GetRoomResponse>> getRoomById(@PathVariable("roomId") Long roomId) {
         GetRoomResponse response = roomService.getRoomById(roomId); // roomService에 getRoomById 메서드가 있다고 가정
         return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.GET);
     }
