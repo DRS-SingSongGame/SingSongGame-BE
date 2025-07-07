@@ -22,7 +22,7 @@ public class InGameController {
 
     @Operation(summary = "게임 시작")
     @PostMapping("/{roomId}/start")
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> startGame(@PathVariable Long roomId) {
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> startGame(@PathVariable("roomId") Long roomId) {
         inGameService.startGame(roomId);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
     }
@@ -30,7 +30,7 @@ public class InGameController {
     @Operation(summary = "정답 제출")
     @PostMapping("/{roomId}/answer")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> submitAnswer(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @RequestBody AnswerRequest answerRequest,
             @LoginUser User loginUser) {
         inGameService.verifyAnswer(loginUser, roomId, answerRequest.getAnswer());
