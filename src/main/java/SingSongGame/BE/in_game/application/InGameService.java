@@ -72,7 +72,6 @@ public class InGameService {
                 .updatedAt(LocalDateTime.now())
                 .build();
         gameSessionRepository.save(gameSession);
-
         // 5초 카운트다운 메시지 전송
         int countdownSeconds = 5;
         GameStartCountdownResponse countdownResponse = new GameStartCountdownResponse("게임이 " + countdownSeconds + "초 후에 시작됩니다!", countdownSeconds);
