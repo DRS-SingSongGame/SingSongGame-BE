@@ -117,9 +117,16 @@ import java.util.concurrent.ScheduledFuture;
                     scheduledTasks.remove(roomId);
                 }
 
-                String winnerName = (user != null) ? user.getName() : "익명 사용자";
-                messagingTemplate.convertAndSend("/topic/ai-room/" + roomId + "/answer-correct",
-                        new AiAnswerCorrectResponse(winnerName, currentSong.getAnswer()));
+                messagingTemplate.convertAndSend(
+                        "/topic/ai-room/" + roomId + "/answer-correct",
+                        new AiAnswerCorrectResponse(
+                                user.getId().toString(),
+                                user.getName(),
+                                currentSong.getTitle(),
+                                currentSong.getArtist(),
+                                100 // 점수 로직에 따라 계산
+                        )
+                );
 
                 ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(
                         () -> startNextRound(roomId),

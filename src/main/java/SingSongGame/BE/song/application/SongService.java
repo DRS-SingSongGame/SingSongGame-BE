@@ -25,7 +25,7 @@ public class SongService {
         return getRandomSong(Collections.emptySet());
     }
 
-    @Transactional
+//    @Transactional
     public SongResponse getRandomSong(Set<Long> usedSongIds) {
         List<Song> candidates;
 
