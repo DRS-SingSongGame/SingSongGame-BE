@@ -2,8 +2,11 @@ package SingSongGame.BE.chat.service;
 
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.chat.dto.ChatMessage;
-import lombok.RequiredArgsConstructor;
+import SingSongGame.BE.chat.dto.LobbyChatRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
@@ -11,22 +14,30 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class LobbyChatService {
 
     private final SimpMessageSendingOperations sendingOperations;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public void sendLobbyMessage(User user, String message) {
-        ChatMessage chatMessage = ChatMessage.builder()
-                .type(ChatMessage.MessageType.TALK)
-                .roomId("lobby")
-                .senderId(user.getId().toString())
-                .senderName(user.getName())
-                .message(message)
-                .timestamp(LocalDateTime.now())
-                .build();
+    public LobbyChatService(
+            SimpMessageSendingOperations sendingOperations,
+            @Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate,
+            ObjectMapper objectMapper) {
+        this.sendingOperations = sendingOperations;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+    }
 
-        sendingOperations.convertAndSend("/topic/lobby", chatMessage);
+    public void sendLobbyMessage(LobbyChatRequest lobbyChatRequest) {
+        // Redis에 메시지 발행
+        try {
+            String jsonMessage = objectMapper.writeValueAsString(lobbyChatRequest);
+            redisTemplate.convertAndSend("lobby", jsonMessage);
+            log.info("로비 Redis 메시지 발행 완료: {}", jsonMessage);
+        } catch (Exception e) {
+            log.error("로비 Redis 메시지 발행 중 오류 발생: {}", e.getMessage(), e);
+        }
     }
 
     public void sendUserEnterLobby(User user) {

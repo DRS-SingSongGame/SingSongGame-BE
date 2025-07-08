@@ -8,5 +8,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LobbyChatRequest {
+    private Long roomId;
     private String message;
+    private String senderId;
+    private String senderName;
 } 

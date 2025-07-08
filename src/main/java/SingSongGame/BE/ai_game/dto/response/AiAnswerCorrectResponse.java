@@ -10,6 +10,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AiAnswerCorrectResponse {
-    private String winnerNickname;
-    private String correctAnswer;
+    private String playerId;
+    private String playerName;
+    private String title;
+    private String artist;
+    private int score;
 }

@@ -6,9 +6,6 @@ import SingSongGame.BE.chat.service.LobbyChatService;
 import SingSongGame.BE.user.application.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
-import org.aspectj.weaver.patterns.IToken;
-import org.aspectj.weaver.patterns.ITokenSource;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -16,8 +13,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Controller
@@ -50,19 +45,21 @@ public class LobbyChatController {
             }
         }
 
-
-        
         // 사용자 이름으로 User 객체 조회
         User user = userService.findByEmail(email);
 
         log.info("현재 사용자 : {}", user.getName());
-
-//        if (user == null) {
-//            log.warn("사용자를 찾을 수 없습니다: {}", username);
-//            return;
-//        }
         
         log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
-        lobbyChatService.sendLobbyMessage(user, request.getMessage());
+        
+        // 사용자 정보를 포함한 새로운 요청 객체 생성
+        LobbyChatRequest lobbyChatRequest = new LobbyChatRequest(
+                request.getRoomId(),
+                request.getMessage(),
+            user.getId().toString(),
+            user.getName()
+        );
+        
+        lobbyChatService.sendLobbyMessage(lobbyChatRequest);
     }
 } 
