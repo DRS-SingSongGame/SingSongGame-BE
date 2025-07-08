@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledFuture;
 @RequiredArgsConstructor
 public class InGameService {
 
-    private static final int TOTAL_ROUNDS = 10; // 총 라운드 수
+    private static final int TOTAL_ROUNDS = 2; // 총 라운드 수
     private static final int ROUND_DURATION_SECONDS = 30; // 각 라운드 지속 시간 (초)
     private static final int ANSWER_REVEAL_DURATION_SECONDS = 5; // 정답 공개 후 다음 라운드까지의 시간 (초)
 

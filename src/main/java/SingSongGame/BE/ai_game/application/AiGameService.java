@@ -31,7 +31,7 @@ import java.util.concurrent.ScheduledFuture;
     @RequiredArgsConstructor
     public class AiGameService {
 
-        private static final int TOTAL_ROUNDS = 5;
+        private static final int TOTAL_ROUNDS = 2;
         private static final int ROUND_DURATION_SECONDS = 30;
         private static final int ANSWER_REVEAL_DURATION_SECONDS = 5;
 
