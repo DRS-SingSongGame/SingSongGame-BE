@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import SingSongGame.BE.song.persistence.Tag;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -64,7 +65,8 @@ public class SongController {
 
         try (
                 // 2. ClassPathResource로 credentials 파일 읽기
-                InputStream keyStream = new ClassPathResource("tts-key.json").getInputStream()
+                //InputStream keyStream = new ClassPathResource("tts-key.json").getInputStream()
+                InputStream keyStream = new FileInputStream("/tts-key.json")
         ) {
             System.out.println("🔥 GOOGLE_APPLICATION_CREDENTIALS: " + System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
             GoogleCredentials credentials = GoogleCredentials.fromStream(keyStream);
