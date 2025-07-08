@@ -48,7 +48,7 @@ public class RoomChatController {
 
                 // 4) 이제 email 꺼내기
                 email = userEntity.getEmail();
-                log.info("사용자 이메일: {}", email);
+//                log.info("사용자 이메일: {}", email);
             }
         }
         

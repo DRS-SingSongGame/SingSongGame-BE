@@ -27,10 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
@@ -55,7 +52,7 @@ public class InGameService {
 
     // 게임을 시작하는 메소드
     @Transactional
-    public void startGame(Long roomId) {
+    public void startGame(Long roomId, Set<String> keywords) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with id: " + roomId));
 
@@ -70,9 +67,9 @@ public class InGameService {
                 .playerScores(new HashMap<>()) // playerScores 초기값
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .keywords(keywords)
                 .build();
         gameSessionRepository.save(gameSession);
-
         // 5초 카운트다운 메시지 전송
         int countdownSeconds = 5;
         GameStartCountdownResponse countdownResponse = new GameStartCountdownResponse("게임이 " + countdownSeconds + "초 후에 시작됩니다!", countdownSeconds);
@@ -94,28 +91,65 @@ public class InGameService {
             return;
         }
 
-        // TODO: RoomType에 따라 로직 분기 (현재는 getRandomSong 사용)
-        Song song = songService.getRandomSong().toSongEntity();
+        // ✅ 키워드 기반 랜덤 노래 추출
+        Song song;
+        Set<String> keywords = gameSession.getKeywords();
+
+        if (keywords != null && !keywords.isEmpty()) {
+            song = songService
+                    .getRandomSongByTagNames(keywords, gameSession.getUsedSongIds());
+
+        } else {
+            song = songService
+                    .getRandomSong(gameSession.getUsedSongIds());
+        }
+
+        // ✅ 출제한 노래 ID 저장
+        gameSession.getUsedSongIds().add(song.getId());
+
         int nextRound = gameSession.getCurrentRound() == null ? 1 : gameSession.getCurrentRound() + 1;
 
-        // GameSession에 현재 라운드, 현재 노래 정보 업데이트
+        // ✅ 라운드 정보 업데이트
         gameSession.updateRoundInfo(
                 nextRound,
                 song,
                 LocalDateTime.now()
         );
-        gameSession.setRoundAnswered(false); // 새 라운드 시작 시 정답 여부 초기화
+        gameSession.setRoundAnswered(false);
         gameSessionRepository.save(gameSession);
 
-        // 클라이언트에 라운드 정보 전송
+        // ✅ 라운드 시작 메시지 전송
         SongResponse songResponse = SongResponse.from(song, nextRound);
-//        System.out.println("Sending round-start: audioUrl = " + songResponse.audioUrl()); // 이 줄 추가
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/round-start", songResponse);
 
-        // 라운드 지속 시간 후에 다음 라운드 시작 (정답 여부와 관계없이)
-        ScheduledFuture<?> future = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ROUND_DURATION_SECONDS * 1000));
+        // ✅ 라운드 종료 타이머 설정
+        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
+            GameSession latestSession = gameSessionRepository.findById(roomId)
+                    .orElseThrow(() -> new IllegalArgumentException("GameSession not found"));
+
+            if (!latestSession.isRoundAnswered()) {
+                // 정답자 없음 알림
+                messagingTemplate.convertAndSend(
+                        "/topic/room/" + roomId + "/round-failed",
+                        Map.of("title", latestSession.getCurrentSong().getTitle())
+                );
+
+                // 3초 후 다음 라운드
+                ScheduledFuture<?> delayTask = taskScheduler.schedule(
+                        () -> startNextRound(roomId),
+                        new Date(System.currentTimeMillis() + 3000)
+                );
+                scheduledTasks.put(roomId, delayTask);
+
+            } else {
+                // 정답자 있었음 → 다음 라운드 즉시 실행
+                startNextRound(roomId);
+            }
+        }, new Date(System.currentTimeMillis() + ROUND_DURATION_SECONDS * 1000));
+
         scheduledTasks.put(roomId, future);
     }
+
 
     @Transactional
     public void verifyAnswer(User user, Long roomId, String answer) {
@@ -130,10 +164,10 @@ public class InGameService {
         }
 
         Song currentSong = gameSession.getCurrentSong();
-        if (currentSong != null && currentSong.getAnswer().equalsIgnoreCase(answer)) {
+        if (currentSong != null && normalizeAnswer(currentSong.getAnswer()).equals(normalizeAnswer(answer))) {
             // 정답 맞혔을 때
-            // int score = calculateScore(gameSession.getRoundStartTime());
-            // addScore(user, roomId, score);
+            int score = calculateScore(gameSession.getRoundStartTime());
+            int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
 
             gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
             gameSessionRepository.save(gameSession);
@@ -147,7 +181,7 @@ public class InGameService {
 
             // 정답 공개 메시지 전송 (정답 포함)
             String winnerName = (user != null) ? user.getName() : "익명 사용자";
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle()));
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores(), scoreGain ));
 
             // 10초 후에 다음 라운드 시작 스케줄링
             ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
@@ -163,18 +197,21 @@ public class InGameService {
 
     // 플레이어의 스코어를 증가시키는 메소드
     @Transactional
-    public void addScore(User user, Long roomId, int scoreToAdd) {
-        // InGame inGame = inGameRepository.findByUserAndRoom(user, new Room(roomId))
-        //         .orElseThrow(() -> new IllegalArgumentException("InGame 정보가 없습니다."));
+    public int addScore(User user, Long roomId, int scoreToAdd) {
+         InGame inGame = inGameRepository.findByUserAndRoom(user, new Room(roomId))
+                 .orElseThrow(() -> new IllegalArgumentException("InGame 정보가 없습니다."));
 
-        // int updateScore = inGame.getScore() + scoreToAdd;
-        // inGame.updateScore(updateScore);
+         int prevScore = inGame.getScore();
+         int updateScore = inGame.getScore() + scoreToAdd;
+         inGame.updateScore(updateScore);
 
-        // // GameSession의 플레이어 점수도 업데이트
-        // GameSession gameSession = gameSessionRepository.findById(roomId)
-        //         .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
-        // gameSession.updatePlayerScore(user.getId(), updateScore);
-        // gameSessionRepository.save(gameSession);
+         // GameSession의 플레이어 점수도 업데이트
+         GameSession gameSession = gameSessionRepository.findById(roomId)
+                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
+         gameSession.updatePlayerScore(user.getId(), updateScore);
+         gameSessionRepository.save(gameSession);
+
+         return scoreToAdd;
     }
 
     @Transactional
@@ -182,9 +219,7 @@ public class InGameService {
         GameSession gameSession = gameSessionRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
-        gameSession.updateGameStatus(GameStatus.WAITING);
-        gameSessionRepository.save(gameSession);
-
+        // ✅ 결과 먼저 계산
         List<FinalResult> finalResults = gameSession.getPlayerScores().entrySet().stream()
                 .map(entry -> new FinalResult(entry.getKey(), entry.getValue()))
                 .toList();
@@ -193,7 +228,26 @@ public class InGameService {
         log.info("🔥 Final Player Scores: {}", gameSession.getPlayerScores());
         log.info("🔥 Final Results to send: {}", finalResults);
 
-        // 클라이언트에게 게임 종료 메시지 전송
+        // ✅ 그 이후에 상태 초기화
+        gameSession.updateGameStatus(GameStatus.WAITING);
+        gameSession.resetForNewGame();
+        resetInGameScores(roomId);
+        gameSessionRepository.save(gameSession);
+
+        // ✅ 클라이언트에게 전송
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-end", response);
+    }
+
+    @Transactional
+    public void resetInGameScores(Long roomId) {
+        List<InGame> inGameList = inGameRepository.findByRoomId(roomId);
+        for (InGame inGame : inGameList) {
+            inGame.setScore(0); // or inGame.resetScore()
+        }
+    }
+
+    private String normalizeAnswer(String input) {
+        return input == null ? "" : input.replaceAll("\\s+", "")  // 모든 공백 제거
+                .toLowerCase();           // 소문자화
     }
 }

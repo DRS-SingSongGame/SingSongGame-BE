@@ -47,7 +47,7 @@ public class SongCsvLoader implements CommandLineRunner {
         // 전체 파싱 후 랜덤 50개 선택
         List<SongCSV> songs = csvToBean.parse();
         Collections.shuffle(songs);
-        List<SongCSV> randomSongs = songs.stream().limit(50).toList();
+        List<SongCSV> randomSongs = songs.stream().limit(300).toList();
 
         for (SongCSV dto : randomSongs) {
             String tagsRaw = Optional.ofNullable(dto.getTags()).orElse("");

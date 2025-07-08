@@ -37,11 +37,13 @@ public class SongController {
 
     @GetMapping("/random")
     public ResponseEntity<SongResponse> getRandomSong() {
-        SongResponse songResponse = songService.getRandomSong();
-        if (songResponse == null) {
+        Song song = songService.getRandomSong();
+        if (song == null) {
             return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.ok(songResponse);
+
+        SongResponse response = SongResponse.from(song, null); // round는 없으니 null
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/verify")
@@ -78,7 +80,7 @@ public class SongController {
 
                 VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
                         .setLanguageCode("ko-KR")
-                        .setName("ko-KR-Wavenet-B")
+                        .setName("ko-KR-Wavenet-A")
                         .build();
 
                 AudioConfig audioConfig = AudioConfig.newBuilder()

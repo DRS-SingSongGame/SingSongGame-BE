@@ -8,10 +8,13 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -46,15 +49,36 @@ public class GameSession {
     @Builder.Default
     private Map<Long, Integer> playerScores = new HashMap<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Builder.Default
+    private Set<Long> usedSongIds = new HashSet<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "game_session_keywords", joinColumns = @JoinColumn(name = "session_id"))
+    @Column(name = "keyword")
+    private Set<String> keywords;
+
+
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public void setRoundAnswered(boolean roundAnswered) {
         this.roundAnswered = roundAnswered;
         this.updatedAt = LocalDateTime.now();
     }
 
-    
 
     public void updateGameStatus(GameStatus gameStatus) {
         this.gameStatus = gameStatus;
@@ -71,5 +95,19 @@ public class GameSession {
     public void updatePlayerScore(Long userId, Integer score) {
         this.playerScores.put(userId, score);
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void resetForNewGame() {
+        this.currentRound = 0;
+        this.currentSong = null;
+        this.roundStartTime = null;
+        this.roundAnswered = false;
+        this.playerScores.clear();
+        this.usedSongIds.clear();
+        this.gameStatus = GameStatus.WAITING; // 또는 READY, 룸 상태와 맞춰서
+        this.updatedAt = LocalDateTime.now();
+        if (this.keywords != null) {
+            this.keywords.clear();
+        }
     }
 }
