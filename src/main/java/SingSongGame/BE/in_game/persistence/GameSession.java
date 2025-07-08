@@ -53,6 +53,12 @@ public class GameSession {
     @Builder.Default
     private Set<Long> usedSongIds = new HashSet<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "game_session_keywords", joinColumns = @JoinColumn(name = "session_id"))
+    @Column(name = "keyword")
+    private Set<String> keywords;
+
+
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -100,5 +106,8 @@ public class GameSession {
         this.usedSongIds.clear();
         this.gameStatus = GameStatus.WAITING; // 또는 READY, 룸 상태와 맞춰서
         this.updatedAt = LocalDateTime.now();
+        if (this.keywords != null) {
+            this.keywords.clear();
+        }
     }
 }
