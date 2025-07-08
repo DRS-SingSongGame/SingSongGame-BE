@@ -78,7 +78,7 @@ public class SongController {
 
                 VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
                         .setLanguageCode("ko-KR")
-                        .setName("ko-KR-Wavenet-B")
+                        .setName("ko-KR-Wavenet-A")
                         .build();
 
                 AudioConfig audioConfig = AudioConfig.newBuilder()

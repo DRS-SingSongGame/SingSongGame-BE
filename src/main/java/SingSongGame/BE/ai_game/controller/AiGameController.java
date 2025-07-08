@@ -1,6 +1,7 @@
 package SingSongGame.BE.ai_game.controller;
 
 import SingSongGame.BE.ai_game.application.AiGameService;
+import SingSongGame.BE.ai_game.dto.request.AiAnswerRequest;
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.common.annotation.LoginUser;
 import SingSongGame.BE.common.response.ApiResponse;
@@ -56,9 +57,9 @@ public class AiGameController {
     @PostMapping("/{roomId}/answer")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> submitAnswer(
             @PathVariable Long roomId,
-            @RequestBody AnswerRequest answerRequest,
+            @RequestBody AiAnswerRequest answerRequest,
             @LoginUser User loginUser) {
-        aiGameService.verifyAnswer(loginUser, roomId, answerRequest.getAnswer());
+        aiGameService.verifyAnswer(loginUser, roomId, answerRequest.getAnswer(), answerRequest.getTimeLeft());
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
     }
 

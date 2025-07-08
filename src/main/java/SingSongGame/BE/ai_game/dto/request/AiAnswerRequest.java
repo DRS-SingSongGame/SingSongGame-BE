@@ -9,4 +9,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AiAnswerRequest {
     private String answer;
+    private int timeLeft;
 }

@@ -57,12 +57,22 @@ public class GameSession {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public void setRoundAnswered(boolean roundAnswered) {
         this.roundAnswered = roundAnswered;
         this.updatedAt = LocalDateTime.now();
     }
 
-    
 
     public void updateGameStatus(GameStatus gameStatus) {
         this.gameStatus = gameStatus;
