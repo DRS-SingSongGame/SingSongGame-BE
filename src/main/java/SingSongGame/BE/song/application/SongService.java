@@ -21,6 +21,7 @@ public class SongService {
 
     private final SongRepository songRepository;
 
+    @Transactional
     public SongResponse getRandomSong() {
         return getRandomSong(Collections.emptySet());
     }
