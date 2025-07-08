@@ -87,7 +87,7 @@ import java.util.concurrent.ScheduledFuture;
                 return;
             }
 
-            Song song = songService.getRandomSong().toSongEntity();
+            Song song = songService.getRandomSong();
             int nextRound = gameSession.getCurrentRound() == null ? 1 : gameSession.getCurrentRound() + 1;
 
             gameSession.updateRoundInfo(nextRound, song, LocalDateTime.now());

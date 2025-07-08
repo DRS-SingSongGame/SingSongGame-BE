@@ -27,7 +27,7 @@ public record SongResponse(
                 .build();
     }
 
-    public static SongResponse from(Song song, int round) {
+    public static SongResponse from(Song song, Integer round) {
         return new SongResponse(
                 song.getId(),
                 song.getTitle(),
