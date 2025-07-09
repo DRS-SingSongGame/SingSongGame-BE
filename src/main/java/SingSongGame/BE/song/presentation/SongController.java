@@ -12,6 +12,7 @@ import com.google.cloud.texttospeech.v1.*;
 import com.google.protobuf.ByteString;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,8 +23,11 @@ import org.springframework.web.bind.annotation.*;
 import SingSongGame.BE.song.persistence.Tag;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 
@@ -34,6 +38,9 @@ public class SongController {
 
     private final SongService songService;
     private final SongRepository songRepository;
+
+    @Value("${TTS_KEY_JSON}")
+    private String ttsKeyJson;
 
     @GetMapping("/random")
     public ResponseEntity<SongResponse> getRandomSong() {
@@ -63,8 +70,8 @@ public class SongController {
         String lyrics = song.getLyrics();
 
         try (
-                // 2. ClassPathResource로 credentials 파일 읽기
-                InputStream keyStream = new ClassPathResource("tts-key.json").getInputStream()
+                InputStream keyStream = new ByteArrayInputStream(ttsKeyJson.getBytes(StandardCharsets.UTF_8))
+
         ) {
             System.out.println("🔥 GOOGLE_APPLICATION_CREDENTIALS: " + System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
             GoogleCredentials credentials = GoogleCredentials.fromStream(keyStream);
