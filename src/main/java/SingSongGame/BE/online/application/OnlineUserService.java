@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +21,7 @@ import java.util.List;
 public class OnlineUserService {
 
     private final OnlineUserRepository onlineUserRepository;
-
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     private final ObjectMapper objectMapper;
@@ -64,7 +65,7 @@ public class OnlineUserService {
                     .type(ChatMessage.MessageType.USER_LIST_UPDATE)
                     .roomId("lobby")  // 그냥 /topic/lobby로 전송
                     .message(objectMapper.writeValueAsString(userList)) // 유저 목록을 JSON 문자열로 전송
-                    .timestamp(LocalDateTime.now())
+                    .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                     .build();
 
             simpMessagingTemplate.convertAndSend("/topic/lobby", msg);

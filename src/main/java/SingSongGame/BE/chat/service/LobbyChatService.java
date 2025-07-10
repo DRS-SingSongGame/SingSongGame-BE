@@ -25,6 +25,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+//@RequiredArgsConstructor
 public class LobbyChatService {
 
 
@@ -38,11 +39,17 @@ public class LobbyChatService {
     public LobbyChatService(
             SimpMessageSendingOperations sendingOperations,
             @Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            OnlineUserService onlineUserService,
+            OnlineUserRepository onlineUserRepository) {
         this.sendingOperations = sendingOperations;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.onlineUserService = onlineUserService;
+        this.onlineUserRepository = onlineUserRepository;
     }
+
+
 
 
 
@@ -130,7 +137,7 @@ public class LobbyChatService {
                     .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                     .build();
 
-            sendingOperations.convertAndSend("/topic/lobby", message);
+            //sendingOperations.convertAndSend("/topic/lobby", message);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }

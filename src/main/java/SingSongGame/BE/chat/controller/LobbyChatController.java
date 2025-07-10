@@ -25,11 +25,6 @@ public class LobbyChatController {
 
     @MessageMapping("/lobby/chat")
     public void sendLobbyMessage(@Payload LobbyChatRequest request, SimpMessageHeaderAccessor headerAccessor) {
-
-        headerAccessor.getMessageHeaders().forEach((key, value) -> {
-            System.out.println("Header Key: " + key + ", Value: " + value);
-        });
-
         Principal auth = headerAccessor.getUser();
         String email = null;
 
