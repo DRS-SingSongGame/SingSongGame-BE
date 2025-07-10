@@ -140,6 +140,7 @@ import java.util.concurrent.ScheduledFuture;
                                 currentSong.getTitle(),
                                 currentSong.getArtist(),
                                 totalScore
+
                         )
                 );
 

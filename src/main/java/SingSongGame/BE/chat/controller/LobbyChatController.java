@@ -6,9 +6,6 @@ import SingSongGame.BE.chat.service.LobbyChatService;
 import SingSongGame.BE.user.application.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
-import org.aspectj.weaver.patterns.IToken;
-import org.aspectj.weaver.patterns.ITokenSource;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -16,8 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Controller
@@ -29,11 +25,6 @@ public class LobbyChatController {
 
     @MessageMapping("/lobby/chat")
     public void sendLobbyMessage(@Payload LobbyChatRequest request, SimpMessageHeaderAccessor headerAccessor) {
-
-        headerAccessor.getMessageHeaders().forEach((key, value) -> {
-            System.out.println("Header Key: " + key + ", Value: " + value);
-        });
-
         Principal auth = headerAccessor.getUser();
         String email = null;
 
@@ -50,19 +41,14 @@ public class LobbyChatController {
             }
         }
 
-
-        
         // 사용자 이름으로 User 객체 조회
         User user = userService.findByEmail(email);
 
         log.info("현재 사용자 : {}", user.getName());
-
-//        if (user == null) {
-//            log.warn("사용자를 찾을 수 없습니다: {}", username);
-//            return;
-//        }
         
         log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
-        lobbyChatService.sendLobbyMessage(user, request.getMessage());
+        
+        // 클라이언트에서 보낸 정보를 그대로 사용하여 Redis에 발행
+        lobbyChatService.sendLobbyMessage(request, user);
     }
 } 

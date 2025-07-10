@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 public class RoomChatRequest {
     private Long roomId;
     private String message;
+    private String senderId;
+    private String senderName;
 } 
