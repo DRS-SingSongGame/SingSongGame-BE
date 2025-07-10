@@ -34,14 +34,10 @@ public class LobbyRedisSubscriber implements MessageListener {
             String publishMessage = (String) redisTemplate.getStringSerializer().deserialize(message.getBody());
             log.info("로비 Redis 메시지 수신: {}", publishMessage);
 
-            LobbyChatRequest lobbyMessage = objectMapper.readValue(publishMessage, LobbyChatRequest.class);
+            // JSON을 그대로 WebSocket으로 전송
+            messagingTemplate.convertAndSend("/topic/lobby", publishMessage);
 
-            if (lobbyMessage.getMessage() != null) {
-                ChatMessage chatMessageResponse = new ChatMessage(lobbyMessage);
-                messagingTemplate.convertAndSend("/topic/lobby", chatMessageResponse);
-                log.info("로비 채팅 메시지 전송 완료 - 발신자: {}, 메시지: {}", 
-                    chatMessageResponse.getSenderName(), chatMessageResponse.getMessage());
-            }
+            log.info("로비 채팅 메시지 전송 완료");
 
         } catch (Exception e) {
             log.error("로비 Redis 메시지 처리 중 오류 발생: {}", e.getMessage(), e);

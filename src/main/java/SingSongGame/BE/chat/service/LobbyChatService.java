@@ -29,11 +29,21 @@ public class LobbyChatService {
         this.objectMapper = objectMapper;
     }
 
-    public void sendLobbyMessage(LobbyChatRequest lobbyChatRequest) {
+
+    public void sendLobbyMessage(LobbyChatRequest request) {
+        ChatMessage chatMessage = ChatMessage.builder()
+                                             .type(ChatMessage.MessageType.valueOf(request.getType()))
+                                             .roomId(request.getRoomId())
+                                             .senderId(request.getSenderId())
+                                             .senderName(request.getSenderName())
+                                             .message(request.getMessage())
+                                             .timestamp(LocalDateTime.now().toString())
+                                             .build();
+
         // Redis에 메시지 발행
         try {
-            String jsonMessage = objectMapper.writeValueAsString(lobbyChatRequest);
-            redisTemplate.convertAndSend("lobby", jsonMessage);
+            String jsonMessage = objectMapper.writeValueAsString(chatMessage);
+            redisTemplate.convertAndSend("/topic/lobby", jsonMessage);
             log.info("로비 Redis 메시지 발행 완료: {}", jsonMessage);
         } catch (Exception e) {
             log.error("로비 Redis 메시지 발행 중 오류 발생: {}", e.getMessage(), e);
@@ -47,7 +57,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비에 입장했습니다.")
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
@@ -60,7 +70,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비를 나갔습니다.")
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);

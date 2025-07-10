@@ -1,6 +1,7 @@
 package SingSongGame.BE.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,18 +22,6 @@ public class RedisConfig {
     주입된 리스너들에게 비동기적으로 dispatch 하는 역할을 수행하는 컨테이너이다.
     즉, 발행된 메시지 처리를 위한 리스너들을 설정할 수 있다.
      */
-    @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(
-
-            RedisConnectionFactory connectionFactory,
-            MessageListenerAdapter listenerAdapter,
-            ChannelTopic channelTopic
-    ) {
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(listenerAdapter, channelTopic);
-        return container;
-    }
 
     /*
     로비 채팅을 위한 RedisMessageListenerContainer를 추가한다.
@@ -53,10 +42,10 @@ public class RedisConfig {
     MessageListenerAdaper에서는 RedisMessageListenerContainer로부터 메시지를 dispatch 받고,
     실제 메시지를 처리하는 비즈니스 로직이 담긴 Subscriber Bean을 추가해준다.
      */
-    @Bean
-    public MessageListenerAdapter listenerAdapter(RedisSubscriber subscriber) {
-        return new MessageListenerAdapter(subscriber, "onMessage");
-    }
+//    @Bean
+//    public MessageListenerAdapter listenerAdapter(RedisSubscriber subscriber) {
+//        return new MessageListenerAdapter(subscriber, "onMessage");
+//    }
 
     /*
     로비 채팅을 위한 MessageListenerAdapter를 추가한다.
@@ -85,21 +74,23 @@ public class RedisConfig {
     /*
     Topic 공유를 위해 Channel Topic을 빈으로 등록해 단일화 시켜준다.
      */
-    @Bean
-    public ChannelTopic channelTopic() {
-        return new ChannelTopic("chatroom");
-    }
+//    @Bean
+//    public ChannelTopic channelTopic() {
+//        return new ChannelTopic("chatroom");
+//    }
 
     /*
     로비 채팅을 위한 Channel Topic을 추가한다.
      */
     @Bean
     public ChannelTopic lobbyChannelTopic() {
-        return new ChannelTopic("lobby");
+        return new ChannelTopic("/topic/lobby");
     }
 
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        return objectMapper;
     }
 }

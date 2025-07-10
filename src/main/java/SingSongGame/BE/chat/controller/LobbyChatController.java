@@ -13,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Controller
@@ -52,14 +53,7 @@ public class LobbyChatController {
         
         log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
         
-        // 사용자 정보를 포함한 새로운 요청 객체 생성
-        LobbyChatRequest lobbyChatRequest = new LobbyChatRequest(
-                request.getRoomId(),
-                request.getMessage(),
-            user.getId().toString(),
-            user.getName()
-        );
-        
-        lobbyChatService.sendLobbyMessage(lobbyChatRequest);
+        // 클라이언트에서 보낸 정보를 그대로 사용하여 Redis에 발행
+        lobbyChatService.sendLobbyMessage(request);
     }
 } 
