@@ -27,17 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
 @RequiredArgsConstructor
 public class InGameService {
 
-    private static final int TOTAL_ROUNDS = 10; // 총 라운드 수
+    private static final int TOTAL_ROUNDS = 2; // 총 라운드 수
     private static final int ROUND_DURATION_SECONDS = 30; // 각 라운드 지속 시간 (초)
     private static final int ANSWER_REVEAL_DURATION_SECONDS = 5; // 정답 공개 후 다음 라운드까지의 시간 (초)
 
@@ -55,7 +52,7 @@ public class InGameService {
 
     // 게임을 시작하는 메소드
     @Transactional
-    public void startGame(Long roomId) {
+    public void startGame(Long roomId, Set<String> keywords) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with id: " + roomId));
 
@@ -70,6 +67,7 @@ public class InGameService {
                 .playerScores(new HashMap<>()) // playerScores 초기값
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .keywords(keywords)
                 .build();
         gameSessionRepository.save(gameSession);
         // 5초 카운트다운 메시지 전송
@@ -93,42 +91,50 @@ public class InGameService {
             return;
         }
 
-        // TODO: RoomType에 따라 로직 분기 (현재는 getRandomSong 사용)
-        // ❗중복 방지: 이전에 출제된 노래 ID는 제외하고 랜덤 추출
-        Song song = songService.getRandomSong(gameSession.getUsedSongIds()).toSongEntity();
+        // ✅ 키워드 기반 랜덤 노래 추출
+        Song song;
+        Set<String> keywords = gameSession.getKeywords();
 
-        // ❗사용된 노래 ID 저장
+        if (keywords != null && !keywords.isEmpty()) {
+            song = songService
+                    .getRandomSongByTagNames(keywords, gameSession.getUsedSongIds());
+
+        } else {
+            song = songService
+                    .getRandomSong(gameSession.getUsedSongIds());
+        }
+
+        // ✅ 출제한 노래 ID 저장
         gameSession.getUsedSongIds().add(song.getId());
 
         int nextRound = gameSession.getCurrentRound() == null ? 1 : gameSession.getCurrentRound() + 1;
 
-        // GameSession에 현재 라운드, 현재 노래 정보 업데이트
+        // ✅ 라운드 정보 업데이트
         gameSession.updateRoundInfo(
                 nextRound,
                 song,
                 LocalDateTime.now()
         );
-        gameSession.setRoundAnswered(false); // 새 라운드 시작 시 정답 여부 초기화
+        gameSession.setRoundAnswered(false);
         gameSessionRepository.save(gameSession);
 
-        // 클라이언트에 라운드 정보 전송
+        // ✅ 라운드 시작 메시지 전송
         SongResponse songResponse = SongResponse.from(song, nextRound);
-//        System.out.println("Sending round-start: audioUrl = " + songResponse.audioUrl()); // 이 줄 추가
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/round-start", songResponse);
 
-        // 라운드 종료 스케줄링 (정답 여부에 따라 처리 분기)
+        // ✅ 라운드 종료 타이머 설정
         ScheduledFuture<?> future = taskScheduler.schedule(() -> {
             GameSession latestSession = gameSessionRepository.findById(roomId)
                     .orElseThrow(() -> new IllegalArgumentException("GameSession not found"));
 
             if (!latestSession.isRoundAnswered()) {
-                // ❌ 정답자 없음 → 클라이언트에 알림
+                // 정답자 없음 알림
                 messagingTemplate.convertAndSend(
                         "/topic/room/" + roomId + "/round-failed",
-                        Map.of("title", latestSession.getCurrentSong().getTitle()) // 또는 RoundFailResponse 객체로 따로 DTO 만들기
+                        Map.of("title", latestSession.getCurrentSong().getTitle())
                 );
 
-                // 3초 후 다음 라운드 실행
+                // 3초 후 다음 라운드
                 ScheduledFuture<?> delayTask = taskScheduler.schedule(
                         () -> startNextRound(roomId),
                         new Date(System.currentTimeMillis() + 3000)
@@ -136,13 +142,14 @@ public class InGameService {
                 scheduledTasks.put(roomId, delayTask);
 
             } else {
-                // ✅ 이미 정답자가 있었음 → 그냥 다음 라운드로
+                // 정답자 있었음 → 다음 라운드 즉시 실행
                 startNextRound(roomId);
             }
         }, new Date(System.currentTimeMillis() + ROUND_DURATION_SECONDS * 1000));
 
         scheduledTasks.put(roomId, future);
     }
+
 
     @Transactional
     public void verifyAnswer(User user, Long roomId, String answer) {

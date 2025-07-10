@@ -31,7 +31,7 @@ import java.util.concurrent.ScheduledFuture;
     @RequiredArgsConstructor
     public class AiGameService {
 
-        private static final int TOTAL_ROUNDS = 10;
+        private static final int TOTAL_ROUNDS = 2;
         private static final int ROUND_DURATION_SECONDS = 30;
         private static final int ANSWER_REVEAL_DURATION_SECONDS = 5;
 
@@ -48,33 +48,37 @@ import java.util.concurrent.ScheduledFuture;
             Room room = roomRepository.findById(roomId)
                     .orElseThrow(() -> new IllegalArgumentException("Room not found with id: " + roomId));
 
-            gameSessionRepository.findById(roomId).ifPresent(gameSessionRepository::delete);
+            GameSession gameSession = gameSessionRepository.findById(roomId)
+                    .map(existingSession -> {
+                        // 기존 세션이 있으면 초기화해서 재사용
+                        existingSession.resetForNewGame();
+                        existingSession.updateGameStatus(GameStatus.IN_PROGRESS);
+                        return existingSession;
+                    })
+                    .orElseGet(() -> {
+                        // 기존 세션이 없으면 새로 생성
+                        return GameSession.builder()
+                                .room(room)
+                                .gameStatus(GameStatus.IN_PROGRESS)
+                                .currentRound(0)
+                                .playerScores(new HashMap<>())
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                    });
 
-            GameSession gameSession = GameSession.builder()
-                    .room(room)
-                    .gameStatus(GameStatus.IN_PROGRESS)
-                    .currentRound(0)
-                    .playerScores(new HashMap<>())
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
             gameSessionRepository.save(gameSession);
 
             messagingTemplate.convertAndSend(
                     "/topic/ai-room/" + roomId + "/game-start",
                     new AiGameStartCountdownResponse("TTS 기반 게임이 시작됩니다!", 3)
             );
-
-//            ScheduledFuture<?> future = taskScheduler.schedule(
-//                    () -> startNextRound(roomId),
-//                    new Date(System.currentTimeMillis() + 3000)); // 3초 후 시작
-//            scheduledTasks.put(roomId, future);
         }
 
         @Transactional
         public void startNextRound(Long roomId) {
-
             log.info("🎯 [startNextRound] 라운드 시작 - roomId: {}", roomId);
+
             GameSession gameSession = gameSessionRepository.findById(roomId)
                     .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
@@ -83,24 +87,31 @@ import java.util.concurrent.ScheduledFuture;
                 return;
             }
 
-            Song song = songService.getRandomSong().toSongEntity();
+            Song song = songService.getRandomSong();
             int nextRound = gameSession.getCurrentRound() == null ? 1 : gameSession.getCurrentRound() + 1;
 
             gameSession.updateRoundInfo(nextRound, song, LocalDateTime.now());
             gameSession.setRoundAnswered(false);
             gameSessionRepository.save(gameSession);
 
-            SongResponse songResponse = SongResponse.from(song, nextRound);
-            messagingTemplate.convertAndSend("/topic/ai-room/" + roomId + "/round-start", songResponse);
+            // ⏱️ 재생 시각: 1.5초 뒤
+            long playbackStartTimestamp = System.currentTimeMillis() + 5000;
 
-//            ScheduledFuture<?> future = taskScheduler.schedule(
-//                    () -> startNextRound(roomId),
-//                    new Date(System.currentTimeMillis() + ROUND_DURATION_SECONDS * 1000));
-//            scheduledTasks.put(roomId, future);
+            // ✨ 응답 객체에 추가
+            SongResponse songResponse = SongResponse.from(song, nextRound);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("song", songResponse);
+            payload.put("playbackStartTime", playbackStartTimestamp);
+
+            // 전송
+            messagingTemplate.convertAndSend(
+                    "/topic/ai-room/" + roomId + "/round-start",
+                    payload
+            );
         }
 
         @Transactional
-        public void verifyAnswer(User user, Long roomId, String answer) {
+        public void verifyAnswer(User user, Long roomId, String answer, int timeLeft) {
             GameSession gameSession = gameSessionRepository.findById(roomId)
                     .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
@@ -110,6 +121,10 @@ import java.util.concurrent.ScheduledFuture;
             if (currentSong != null && currentSong.getAnswer().equalsIgnoreCase(answer)) {
                 gameSession.setRoundAnswered(true);
                 gameSessionRepository.save(gameSession);
+
+                int baseScore = 50;
+                int bonusScore = (int) Math.round((timeLeft / 60.0) * 50);  // 예: 60초 남았으면 100점
+                int totalScore = baseScore + bonusScore;
 
                 ScheduledFuture<?> currentTask = scheduledTasks.get(roomId);
                 if (currentTask != null) {
@@ -124,14 +139,11 @@ import java.util.concurrent.ScheduledFuture;
                                 user.getName(),
                                 currentSong.getTitle(),
                                 currentSong.getArtist(),
-                                100 // 점수 로직에 따라 계산
+                                totalScore
+
                         )
                 );
 
-                ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(
-                        () -> startNextRound(roomId),
-                        new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
-                scheduledTasks.put(roomId, nextRoundTask);
             }
         }
 
@@ -143,7 +155,10 @@ import java.util.concurrent.ScheduledFuture;
             gameSession.updateGameStatus(GameStatus.WAITING);
             gameSessionRepository.save(gameSession);
 
-            messagingTemplate.convertAndSend("/topic/ai-room/" + roomId + "/game-end", "TTS 게임이 종료되었습니다!");
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("message", "TTS 게임이 종료되었습니다!");
+
+            messagingTemplate.convertAndSend("/topic/ai-room/" + roomId + "/game-end", payload);
         }
     }
 

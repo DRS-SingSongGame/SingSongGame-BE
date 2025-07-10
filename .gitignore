@@ -40,3 +40,6 @@ out/
 src/main/resources/tts-key.json
 
 .env
+
+.DS_Store
+**/.DS_Store

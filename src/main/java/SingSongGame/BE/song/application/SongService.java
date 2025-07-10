@@ -6,6 +6,7 @@ import SingSongGame.BE.song.application.dto.response.SongVerifyResponse;
 import SingSongGame.BE.song.persistence.Song;
 import SingSongGame.BE.song.persistence.SongRepository;
 import SingSongGame.BE.song.persistence.Tag;
+import SingSongGame.BE.song.persistence.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +21,15 @@ import java.util.Set;
 public class SongService {
 
     private final SongRepository songRepository;
+    private final TagRepository tagRepository;
 
-    public SongResponse getRandomSong() {
+    @Transactional
+    public Song getRandomSong() {
         return getRandomSong(Collections.emptySet());
     }
 
     @Transactional
-    public SongResponse getRandomSong(Set<Long> usedSongIds) {
+    public Song getRandomSong(Set<Long> usedSongIds) {
         List<Song> candidates;
 
         if (usedSongIds.isEmpty()) {
@@ -40,22 +43,29 @@ public class SongService {
             return null; // 더 이상 출제할 노래가 없음
         }
 
-        Song randomSong = candidates.get(new Random().nextInt(candidates.size()));
+        return candidates.get(new Random().nextInt(candidates.size()));
+    }
 
-        List<String> tagNames = randomSong.getTags().stream()
-                .map(Tag::getName)
+    @Transactional(readOnly = true)
+    public Song getRandomSongByTagNames(Set<String> keywordNames, Set<Long> usedSongIds) {
+        // ✅ 전체 선택이거나 아무 태그 없음 → 전체 랜덤
+        if (keywordNames == null || keywordNames.isEmpty() || keywordNames.contains("전체")) {
+            return getRandomSong(usedSongIds);
+        }
+
+        List<Tag> tags = tagRepository.findByNameIn(keywordNames);
+        List<Long> tagIds = tags.stream().map(Tag::getId).toList();
+
+        List<Song> candidates = songRepository.findSongsByTagIds(tagIds)
+                .stream()
+                .filter(song -> !usedSongIds.contains(song.getId()))
                 .toList();
 
-        return new SongResponse(
-                randomSong.getId(),
-                randomSong.getTitle(),
-                randomSong.getArtist(),
-                randomSong.getAudioUrl(),
-                tagNames,
-                randomSong.getHint(),
-                randomSong.getLyrics(),
-                null // 라운드 정보는 InGameService에서 설정
-        );
+        if (candidates.isEmpty()) {
+            throw new IllegalStateException("출제 가능한 노래가 없습니다.");
+        }
+
+        return candidates.get(new Random().nextInt(candidates.size()));
     }
 
     public SongVerifyResponse verifyAnswer(SongVerifyRequest request) {

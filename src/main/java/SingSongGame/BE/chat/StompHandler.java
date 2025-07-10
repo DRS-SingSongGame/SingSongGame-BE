@@ -1,7 +1,9 @@
 package SingSongGame.BE.chat;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.chat.service.LobbyChatService;
 import SingSongGame.BE.common.util.JwtProvider;
+import SingSongGame.BE.online.persistence.SessionUserRegistry;
 import SingSongGame.BE.user.application.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +13,10 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -22,6 +26,7 @@ public class StompHandler implements ChannelInterceptor {
     
     private final JwtProvider jwtProvider;
     private final UserService userService;
+    private final SessionUserRegistry sessionUserRegistry;
     
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -53,21 +58,25 @@ public class StompHandler implements ChannelInterceptor {
                             String[] cookiePairs = cookieHeader.split(";");
                             for (String pair : cookiePairs) {
                                 String[] keyValue = pair.trim().split("=");
-                                if (keyValue.length == 2 && "access".equals(keyValue[0].trim())) {
+                                if (keyValue.length == 2 && "access_token".equals(keyValue[0].trim())) {
                                     token = keyValue[1].trim();
                                     break;
                                 }
                             }
                         }
                     }
-                    
-                    if (token != null) {
+                    if (token != null && !token.isBlank()) {
+                        // ✅ 토큰 인증 우선
                         try {
                             Long userId = jwtProvider.getUserIdFromToken(token);
                             User user = userService.findById(userId);
                             if (user != null) {
-                                accessor.setUser(() -> user.getName());
-                                log.info("사용자 인증 성공: {}", user.getName());
+                                UsernamePasswordAuthenticationToken authToken =
+                                        new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.emptyList());
+
+                                accessor.setUser(authToken);
+                                sessionUserRegistry.register(accessor.getSessionId(), userId);
+                                log.info("✅ 사용자 인증 성공: {} (userId: {})", user.getEmail(), userId);
                             } else {
                                 log.warn("사용자를 찾을 수 없음: userId={}", userId);
                             }
@@ -75,7 +84,31 @@ public class StompHandler implements ChannelInterceptor {
                             log.error("JWT 토큰 검증 실패: {}", e.getMessage());
                         }
                     } else {
-                        log.warn("JWT 토큰을 찾을 수 없음");
+                        // ✅ 토큰이 없는 경우: userId + nickname 기반 인증
+                        String userIdStr = accessor.getFirstNativeHeader("userId");
+                        String nickname = accessor.getFirstNativeHeader("nickname");
+
+                        if (userIdStr != null && nickname != null) {
+                            try {
+                                Long userId = Long.parseLong(userIdStr);
+                                User user = userService.findById(userId); // 👈 실제 User 객체 조회
+
+                                if (user != null) {
+                                    UsernamePasswordAuthenticationToken authToken =
+                                            new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
+
+                                    accessor.setUser(authToken); // 👈 진짜 User를 넣기
+                                    sessionUserRegistry.register(accessor.getSessionId(), userId);
+                                    log.info("✅ 사용자 인증 (토큰 없이) 성공: {} (userId: {})", nickname, userId);
+                                } else {
+                                    log.warn("❌ userId로 사용자를 찾을 수 없음: {}", userId);
+                                }
+                            } catch (NumberFormatException e) {
+                                log.warn("❌ 잘못된 userId 포맷: {}", userIdStr);
+                            }
+                        } else {
+                            log.warn("❌ userId 또는 nickname 누락됨");
+                        }
                     }
                     break;
                 case DISCONNECT:
