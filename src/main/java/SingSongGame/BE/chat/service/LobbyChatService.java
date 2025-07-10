@@ -53,7 +53,7 @@ public class LobbyChatService {
                                              .senderId(user.getId().toString())
                                              .senderName(user.getName())
                                              .message(request.getMessage())
-                                             .timestamp(LocalDateTime.now().format(ISO_FORMATTER))
+                                             .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                                              .build();
 
         // Redis에 메시지 발행
@@ -72,7 +72,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비에 입장했습니다.")
-                .timestamp(LocalDateTime.now().format(ISO_FORMATTER))
+                .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                 .build();
 
         onlineUserService.addUser(user.getId(), user.getName(), user.getImageUrl(), OnlineLocation.LOBBY);
@@ -89,7 +89,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비를 나갔습니다.")
-                .timestamp(LocalDateTime.now().format(ISO_FORMATTER))
+                .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                 .build();
 
         onlineUserService.changeUserLocation(user.getId(), OnlineLocation.ROOM);
