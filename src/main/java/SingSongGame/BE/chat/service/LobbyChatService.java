@@ -110,7 +110,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 접속을 종료했습니다.")
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
@@ -127,7 +127,7 @@ public class LobbyChatService {
                     .type(ChatMessage.MessageType.USER_LIST_UPDATE)
                     .roomId("lobby")
                     .message(objectMapper.writeValueAsString(allUsers)) // 유저 리스트 JSON 문자열로 변환
-                    .timestamp(LocalDateTime.now())
+                    .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                     .build();
 
             sendingOperations.convertAndSend("/topic/lobby", message);
