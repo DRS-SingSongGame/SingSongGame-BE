@@ -11,11 +11,14 @@ import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
 public class LobbyChatService {
 
+
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private final SimpMessageSendingOperations sendingOperations;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -30,21 +33,20 @@ public class LobbyChatService {
     }
 
 
-    public void sendLobbyMessage(LobbyChatRequest request) {
+    public void sendLobbyMessage(LobbyChatRequest request, User user) {
         ChatMessage chatMessage = ChatMessage.builder()
-                                             .type(ChatMessage.MessageType.valueOf(request.getType()))
-                                             .roomId(request.getRoomId())
-                                             .senderId(request.getSenderId())
-                                             .senderName(request.getSenderName())
+                                             .type(ChatMessage.MessageType.TALK)
+                                             .roomId("lobby")
+                                             .senderId(user.getId().toString())
+                                             .senderName(user.getName())
                                              .message(request.getMessage())
-                                             .timestamp(LocalDateTime.now().toString())
+                                             .timestamp(LocalDateTime.now().format(ISO_FORMATTER))
                                              .build();
 
         // Redis에 메시지 발행
         try {
-            String jsonMessage = objectMapper.writeValueAsString(chatMessage);
-            redisTemplate.convertAndSend("/topic/lobby", jsonMessage);
-            log.info("로비 Redis 메시지 발행 완료: {}", jsonMessage);
+            redisTemplate.convertAndSend("/topic/lobby", chatMessage);
+            log.info("로비 Redis 메시지 발행 완료: {}", chatMessage);
         } catch (Exception e) {
             log.error("로비 Redis 메시지 발행 중 오류 발생: {}", e.getMessage(), e);
         }
@@ -57,7 +59,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비에 입장했습니다.")
-                .timestamp(LocalDateTime.now().toString())
+                .timestamp(LocalDateTime.now().format(ISO_FORMATTER))
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
@@ -70,7 +72,7 @@ public class LobbyChatService {
                 .senderId(user.getId().toString())
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비를 나갔습니다.")
-                .timestamp(LocalDateTime.now().toString())
+                .timestamp(LocalDateTime.now().format(ISO_FORMATTER))
                 .build();
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);

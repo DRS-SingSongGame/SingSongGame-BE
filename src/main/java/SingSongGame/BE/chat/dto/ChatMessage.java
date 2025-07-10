@@ -10,14 +10,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
-@AllArgsConstructor
+@Setter
 @NoArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
+@AllArgsConstructor
+@Builder
 public class ChatMessage {
 
     public enum MessageType {
@@ -25,7 +26,7 @@ public class ChatMessage {
     }
 
     private MessageType type;
-    private String roomId; // 로비는 "lobby", 게임방은 roomId
+    private String roomId;
     private String senderId;
     private String senderName;
     private String message;

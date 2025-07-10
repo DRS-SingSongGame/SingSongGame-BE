@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
@@ -28,17 +29,14 @@ public class LobbyRedisSubscriber implements MessageListener {
         this.messagingTemplate = messagingTemplate;
     }
 
+
     @Override
     public void onMessage(Message message, byte[] pattern) {
         try {
             String publishMessage = (String) redisTemplate.getStringSerializer().deserialize(message.getBody());
-            log.info("로비 Redis 메시지 수신: {}", publishMessage);
 
-            // JSON을 그대로 WebSocket으로 전송
-            messagingTemplate.convertAndSend("/topic/lobby", publishMessage);
-
-            log.info("로비 채팅 메시지 전송 완료");
-
+            ChatMessage chatMessage = objectMapper.readValue(publishMessage, ChatMessage.class);
+            messagingTemplate.convertAndSend("/topic/lobby", chatMessage);
         } catch (Exception e) {
             log.error("로비 Redis 메시지 처리 중 오류 발생: {}", e.getMessage(), e);
         }

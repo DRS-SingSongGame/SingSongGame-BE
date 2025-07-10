@@ -54,6 +54,6 @@ public class LobbyChatController {
         log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
         
         // 클라이언트에서 보낸 정보를 그대로 사용하여 Redis에 발행
-        lobbyChatService.sendLobbyMessage(request);
+        lobbyChatService.sendLobbyMessage(request, user);
     }
 } 

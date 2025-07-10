@@ -17,10 +17,5 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LobbyChatRequest {
-    private String type;
     private String message;
-    private String roomId;
-    private String senderId;
-    private String senderName;
-    private String timestamp;
 } 
