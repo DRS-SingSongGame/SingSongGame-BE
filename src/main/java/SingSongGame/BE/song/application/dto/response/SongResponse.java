@@ -14,7 +14,8 @@ public record SongResponse(
         List<String> tags,
         String hint,
         String lyrics,
-        Integer round
+        Integer round,
+        Integer maxRound
 ) {
     public Song toSongEntity() {
         return Song.builder()
@@ -27,7 +28,7 @@ public record SongResponse(
                 .build();
     }
 
-    public static SongResponse from(Song song, Integer round) {
+    public static SongResponse from(Song song, Integer round, Integer maxRound) {
         return new SongResponse(
                 song.getId(),
                 song.getTitle(),
@@ -36,7 +37,8 @@ public record SongResponse(
                 song.getTags().stream().map(Tag::getName).collect(Collectors.toList()),
                 song.getHint(),
                 song.getLyrics(),
-                round
+                round,
+                maxRound
         );
     }
 }

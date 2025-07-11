@@ -98,7 +98,7 @@ import java.util.concurrent.ScheduledFuture;
             long playbackStartTimestamp = System.currentTimeMillis() + 5000;
 
             // ✨ 응답 객체에 추가
-            SongResponse songResponse = SongResponse.from(song, nextRound);
+            SongResponse songResponse = SongResponse.from(song, nextRound, null);
             Map<String, Object> payload = new HashMap<>();
             payload.put("song", songResponse);
             payload.put("playbackStartTime", playbackStartTimestamp);

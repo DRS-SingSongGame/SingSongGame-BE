@@ -33,6 +33,10 @@ public class GameSession {
 
     private Integer currentRound;
 
+    @Column(nullable = false)
+    private int maxRound;
+
+
     @ManyToOne
     @JoinColumn(name = "current_song_id")
     private Song currentSong;

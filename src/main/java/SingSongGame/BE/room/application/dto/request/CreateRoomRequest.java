@@ -17,6 +17,7 @@ public class CreateRoomRequest {
     private Integer roomPassword;
     private Integer currentPlayer;
     private Integer maxPlayer;
+    private int maxRound;
     //private String gameStatus;
     private Long hostId;
 }

@@ -16,6 +16,7 @@ public class RoomRequestConverter {
                    .isPrivate(request.getIsPrivate())
                    .password(request.getRoomPassword())
                    .maxPlayer(request.getMaxPlayer())
+                   .maxRound(request.getMaxRound())
                    .host(host) // 소셜 로그인 구현 후 수정 필요.
                    .build();
     }
