@@ -20,10 +20,13 @@ import SingSongGame.BE.room.persistence.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
 @RequiredArgsConstructor
@@ -40,8 +43,8 @@ public class RoomService {
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request, User hostUser) {
         Room room = requestConverter.toEntity(request, hostUser);
-        Long saveId = roomRepository.save(room).getId();
-        return responseConverter.from(saveId);
+        roomRepository.save(room);
+        return responseConverter.from(room);
     }
 
     public List<GetRoomResponse> getRoomsInRoby() {
@@ -64,37 +67,37 @@ public class RoomService {
     @Transactional
     public JoinRoomResponse joinRoom(JoinRoomRequest request, User user, Long roomId) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "존재하지 않는 방입니다."));
 
         Optional<GameSession> gameSessionOptional = gameSessionRepository.findById(roomId);
         GameStatus currentStatus = gameSessionOptional.map(GameSession::getGameStatus).orElse(GameStatus.WAITING);
 
         // 방 상태 확인
         if (currentStatus == GameStatus.DELETED) {
-            throw new IllegalArgumentException("삭제된 방입니다.");
+            throw new ResponseStatusException(BAD_REQUEST, "삭제된 방입니다.");
         }
 
         if (currentStatus == GameStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("게임이 진행 중인 방입니다.");
+            throw new ResponseStatusException(BAD_REQUEST, "게임이 진행 중인 방입니다.");
         }
 
         // 비밀번호 확인
         if (room.getIsPrivate()) {
             if (!room.getPassword().equals(request.getPassword())) { // 비밀번호 불일치 시 예외 발생
-                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+                throw new ResponseStatusException(BAD_REQUEST, "비밀번호가 일치하지 않습니다.");
             }
         }
 
         // 방 인원 수 확인
         long currentPlayerCount = inGameRepository.countByRoom(room);
         if (currentPlayerCount >= room.getMaxPlayer()) {
-            throw new IllegalArgumentException("방이 가득 찼습니다.");
+            throw new ResponseStatusException(BAD_REQUEST, "방이 가득 찼습니다.");
         }
 
         // 이미 방에 있는지 확인
         boolean alreadyInRoom = inGameRepository.existsByRoomAndUser(room, user);
         if (alreadyInRoom) {
-            throw new IllegalArgumentException("이미 방에 입장해 있습니다.");
+            throw new ResponseStatusException(BAD_REQUEST, "이미 방에 입장해 있습니다.");
         }
 
         // 방에 입장

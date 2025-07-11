@@ -26,14 +26,20 @@ public class Room {
     private RoomType roomType;
 
     private Boolean isPrivate;
+
     private Integer password;
+
     private Integer maxPlayer;
+
+    @Column(nullable = false)
+    private int maxRound; // ✅ 최대 라운드
 
     @ManyToOne
     @JoinColumn(name = "host_id")
     private User host;
 
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "room")

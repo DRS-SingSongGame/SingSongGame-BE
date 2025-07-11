@@ -49,7 +49,7 @@ public class SongController {
             return ResponseEntity.noContent().build();
         }
 
-        SongResponse response = SongResponse.from(song, null); // round는 없으니 null
+        SongResponse response = SongResponse.from(song, null, null); // round는 없으니 null
         return ResponseEntity.ok(response);
     }
 

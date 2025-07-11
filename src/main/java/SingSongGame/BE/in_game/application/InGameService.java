@@ -12,6 +12,7 @@ import SingSongGame.BE.in_game.persistence.GameSessionRepository;
 import SingSongGame.BE.room.persistence.GameStatus;
 import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.RoomRepository;
+import SingSongGame.BE.room_keyword.KeywordService;
 import SingSongGame.BE.song.application.SongService;
 import SingSongGame.BE.song.application.dto.response.SongResponse;
 import SingSongGame.BE.song.persistence.Song;
@@ -45,6 +46,7 @@ public class InGameService {
     private final GameSessionRepository gameSessionRepository;
     private final SimpMessageSendingOperations messagingTemplate;
     private final SongService songService;
+    private final KeywordService keywordService;
     private final TaskScheduler taskScheduler;
     private final ApplicationContext applicationContext;
 
@@ -67,9 +69,11 @@ public class InGameService {
                 .playerScores(new HashMap<>()) // playerScores 초기값
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .maxRound(room.getMaxRound())
                 .keywords(keywords)
                 .build();
         gameSessionRepository.save(gameSession);
+        keywordService.clearKeywords(roomId);
         // 5초 카운트다운 메시지 전송
         int countdownSeconds = 5;
         GameStartCountdownResponse countdownResponse = new GameStartCountdownResponse("게임이 " + countdownSeconds + "초 후에 시작됩니다!", countdownSeconds);
@@ -86,7 +90,7 @@ public class InGameService {
         GameSession gameSession = gameSessionRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
-        if (gameSession.getCurrentRound() >= TOTAL_ROUNDS) {
+        if (gameSession.getCurrentRound() >= gameSession.getMaxRound()) {
             applicationContext.getBean(InGameService.class).endGame(roomId);
             return;
         }
@@ -119,7 +123,7 @@ public class InGameService {
         gameSessionRepository.save(gameSession);
 
         // ✅ 라운드 시작 메시지 전송
-        SongResponse songResponse = SongResponse.from(song, nextRound);
+        SongResponse songResponse = SongResponse.from(song, nextRound, gameSession.getMaxRound());
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/round-start", songResponse);
 
         // ✅ 라운드 종료 타이머 설정

@@ -20,9 +20,10 @@ public class RoomResponseConverter {
 
     private final InGameRepository inGameRepository;
 
-    public CreateRoomResponse from(Long roomId) {
+    public CreateRoomResponse from(Room room) {
         return CreateRoomResponse.builder()
-                .id(roomId)
+                .id(room.getId())
+                .maxRound(room.getMaxRound()) // ✅ 추가된 필드
                 .build();
     }
 
