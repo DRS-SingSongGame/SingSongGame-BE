@@ -30,6 +30,7 @@ public class InGameController {
             @RequestBody(required = false) GameStartRequest request // <-- 추가
     ) {
         Set<String> keywords = (request != null) ? request.keywords() : Set.of(); // null-safe 처리
+        System.out.println("🎯 받은 키워드들: " + keywords);
         inGameService.startGame(roomId, keywords); // 서비스도 수정 필요
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
     }

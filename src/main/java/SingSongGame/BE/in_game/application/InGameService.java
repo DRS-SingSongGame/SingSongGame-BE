@@ -58,21 +58,41 @@ public class InGameService {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with id: " + roomId));
 
-        // 기존 GameSession이 있다면 삭제 (재시작 시나 오류 복구 시)
-        gameSessionRepository.findById(roomId).ifPresent(gameSessionRepository::delete);
+        // ✅ 기존 GameSession 조회 또는 새로 생성
+        GameSession gameSession = gameSessionRepository.findById(roomId)
+                .orElse(null);
 
-        // GameSession 생성
-        GameSession gameSession = GameSession.builder()
-                .room(room)
-                .gameStatus(GameStatus.IN_PROGRESS)
-                .currentRound(0) // 초기 라운드 0
-                .playerScores(new HashMap<>()) // playerScores 초기값
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .maxRound(room.getMaxRound())
-                .keywords(keywords)
-                .build();
+        if (gameSession != null) {
+            // ✅ 기존 세션이 있으면 업데이트
+            gameSession.resetForNewGame(); // 기존 메서드 재활용
+            gameSession.setKeywords(keywords);
+            gameSession.setGameStatus(GameStatus.IN_PROGRESS);
+            gameSession.setMaxRound(room.getMaxRound());
+            gameSession.setUpdatedAt(LocalDateTime.now());
+        } else {
+            // ✅ 새 세션 생성
+            gameSession = GameSession.builder()
+                    .room(room)
+                    .gameStatus(GameStatus.IN_PROGRESS)
+                    .currentRound(0)
+                    .playerScores(new HashMap<>())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .maxRound(room.getMaxRound())
+                    .keywords(keywords)
+                    .build();
+        }
+
         gameSessionRepository.save(gameSession);
+        // ✅ 저장 직후 바로 확인
+        System.out.println("🎮 저장된 키워드: " + gameSession.getKeywords());
+
+        // ✅ DB에서 다시 읽어와서 확인
+        GameSession savedSession = gameSessionRepository.findById(roomId).orElse(null);
+        if (savedSession != null) {
+            System.out.println("🎮 DB에서 읽은 키워드: " + savedSession.getKeywords());
+        }
+
         keywordService.clearKeywords(roomId);
         // 5초 카운트다운 메시지 전송
         int countdownSeconds = 5;
@@ -123,7 +143,7 @@ public class InGameService {
         gameSessionRepository.save(gameSession);
 
         // ✅ 라운드 시작 메시지 전송
-        SongResponse songResponse = SongResponse.from(song, nextRound, gameSession.getMaxRound());
+        SongResponse songResponse = songService.createSongResponse(song, nextRound, gameSession.getMaxRound());
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/round-start", songResponse);
 
         // ✅ 라운드 종료 타이머 설정
