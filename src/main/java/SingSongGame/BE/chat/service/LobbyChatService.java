@@ -99,7 +99,7 @@ public class LobbyChatService {
                 .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                 .build();
 
-        onlineUserService.changeUserLocation(user.getId(), OnlineLocation.ROOM);
+//        onlineUserService.changeUserLocation(user.getId(), OnlineLocation.ROOM);
 
         sendingOperations.convertAndSend("/topic/lobby", chatMessage);
 
@@ -137,7 +137,7 @@ public class LobbyChatService {
                     .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
                     .build();
 
-            //sendingOperations.convertAndSend("/topic/lobby", message);
+            sendingOperations.convertAndSend("/topic/lobby", message);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }

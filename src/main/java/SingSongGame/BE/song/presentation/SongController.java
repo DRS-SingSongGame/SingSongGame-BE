@@ -70,7 +70,7 @@ public class SongController {
         String lyrics = song.getLyrics();
 
         try (
-                InputStream keyStream = new ByteArrayInputStream(ttsKeyJson.getBytes(StandardCharsets.UTF_8))
+                InputStream keyStream = new FileInputStream(ttsKeyJson)
 
         ) {
             System.out.println("🔥 GOOGLE_APPLICATION_CREDENTIALS: " + System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
