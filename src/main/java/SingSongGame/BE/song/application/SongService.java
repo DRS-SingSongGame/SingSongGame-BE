@@ -48,14 +48,22 @@ public class SongService {
 
     @Transactional(readOnly = true)
     public Song getRandomSongByTagNames(Set<String> keywordNames, Set<Long> usedSongIds) {
-        // ✅ 전체 선택이거나 아무 태그 없음 → 전체 랜덤
-        if (keywordNames == null || keywordNames.isEmpty() || keywordNames.contains("전체")) {
-            return getRandomSong(usedSongIds);
-        }
+        // ✅ 전체 선택이거나 아무 태그 없음 → 전체 랜덤 (tags와 함께 조회)
+        System.out.println("🎵 검색할 키워드들: " + keywordNames);
 
+        if (keywordNames == null || keywordNames.isEmpty() || keywordNames.contains("전체")) {
+            System.out.println("🎵 전체 랜덤 선택됨");
+            List<Song> allSongs = songRepository.findAllWithTagsExcluding(usedSongIds);
+            if (allSongs.isEmpty()) {
+                throw new IllegalStateException("출제 가능한 노래가 없습니다.");
+            }
+            return allSongs.get(new Random().nextInt(allSongs.size()));
+        }
+        System.out.println("🎵 키워드 기반 검색");
         List<Tag> tags = tagRepository.findByNameIn(keywordNames);
         List<Long> tagIds = tags.stream().map(Tag::getId).toList();
 
+        // ✅ 이미 JOIN FETCH가 있으니 그대로 사용
         List<Song> candidates = songRepository.findSongsByTagIds(tagIds)
                 .stream()
                 .filter(song -> !usedSongIds.contains(song.getId()))
@@ -66,6 +74,12 @@ public class SongService {
         }
 
         return candidates.get(new Random().nextInt(candidates.size()));
+    }
+
+    @Transactional(readOnly = true)
+    public SongResponse createSongResponse(Song song, Integer round, Integer maxRound) {
+        // ✅ 이미 선택된 song 객체로 DTO 변환만
+        return SongResponse.from(song, round, maxRound);
     }
 
     public SongVerifyResponse verifyAnswer(SongVerifyRequest request) {

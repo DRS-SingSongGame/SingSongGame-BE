@@ -15,4 +15,6 @@ public interface SongRepository extends JpaRepository<Song, Long> {
     List<Song> findAllExcluding(@Param("usedIds") Set<Long> usedIds);
     @Query("SELECT DISTINCT s FROM Song s JOIN FETCH s.tags t WHERE t.id IN :tagIds")
     List<Song> findSongsByTagIds(@Param("tagIds") List<Long> tagIds);
+    @Query("SELECT s FROM Song s JOIN FETCH s.tags WHERE s.id NOT IN :usedIds")
+    List<Song> findAllWithTagsExcluding(@Param("usedIds") Set<Long> usedIds);
 }

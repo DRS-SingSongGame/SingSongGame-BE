@@ -110,8 +110,8 @@ public class GameSession {
         this.usedSongIds.clear();
         this.gameStatus = GameStatus.WAITING; // 또는 READY, 룸 상태와 맞춰서
         this.updatedAt = LocalDateTime.now();
-        if (this.keywords != null) {
-            this.keywords.clear();
-        }
+//        if (this.keywords != null) {
+//            this.keywords.clear();
+//        }
     }
 }
