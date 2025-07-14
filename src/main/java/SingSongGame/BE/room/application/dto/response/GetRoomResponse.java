@@ -19,6 +19,7 @@ public class GetRoomResponse {
     private RoomType roomType;
     private Boolean isPrivate;
     private Integer maxPlayer;
+    private Integer maxRound;
     private GameStatus gameStatus;
     private Long hostId;
     private String hostName;
