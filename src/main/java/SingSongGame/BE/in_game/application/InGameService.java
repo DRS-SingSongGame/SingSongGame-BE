@@ -250,7 +250,7 @@ public class InGameService {
         }
     }
 
-    private String normalizeAnswer(String input) {
+    public String normalizeAnswer(String input) {
         return input == null ? "" : input.replaceAll("\\s+", "")  // 모든 공백 제거
                 .toLowerCase();           // 소문자화
     }
