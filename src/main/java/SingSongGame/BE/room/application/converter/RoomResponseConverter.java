@@ -1,18 +1,15 @@
 package SingSongGame.BE.room.application.converter;
 
-import SingSongGame.BE.auth.persistence.User;
-import SingSongGame.BE.in_game.persistence.InGame;
 import SingSongGame.BE.in_game.persistence.InGameRepository;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import SingSongGame.BE.room.application.dto.response.PlayerInfo;
-import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.GameStatus;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
+import SingSongGame.BE.room.persistence.Room;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -42,6 +39,7 @@ public class RoomResponseConverter {
                 .roomType(room.getRoomType())
                 .isPrivate(room.getIsPrivate())
                 .maxPlayer(room.getMaxPlayer())
+                .maxRound(room.getMaxRound())
                 .gameStatus(gameStatus)
                 .hostId(room.getHost().getId())
                 .hostName(room.getHost().getName())
