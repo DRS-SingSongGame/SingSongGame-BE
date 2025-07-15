@@ -33,9 +33,16 @@ public class RoomResponseConverter {
                         .build())
                 .collect(Collectors.toList());
 
+        // 🔑 QuickMatchRoom이 연결되어 있다면 roomCode를 가져온다
+        String roomCode = null;
+        if (room.getQuickMatchRoom() != null) {
+            roomCode = room.getQuickMatchRoom().getRoomCode();
+        }
+
         return GetRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
+                .roomCode(roomCode) // ✅ 여기만 수정됨!
                 .roomType(room.getRoomType())
                 .isPrivate(room.getIsPrivate())
                 .maxPlayer(room.getMaxPlayer())
