@@ -71,6 +71,9 @@ jobs:
             --env FRONTEND_REDIRECT_URL_LOCAL=${{ secrets.FRONTEND_REDIRECT_URL_LOCAL }} \
             --env FRONTEND_REDIRECT_URL_PROD=${{ secrets.FRONTEND_REDIRECT_URL_PROD }} \
             --env JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
+            --env REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} \
+            --env REDIS_HOST=host.docker.internal \
+            --env REDIS_PORT=6379 \
             -e SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
             -e SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }} \
             -e SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }} \
