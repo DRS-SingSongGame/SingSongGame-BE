@@ -9,6 +9,9 @@ import SingSongGame.BE.in_game.persistence.InGame;
 import SingSongGame.BE.in_game.persistence.InGameRepository;
 import SingSongGame.BE.in_game.persistence.GameSession;
 import SingSongGame.BE.in_game.persistence.GameSessionRepository;
+import SingSongGame.BE.quick_match.application.rating.TierChangeResult;
+import SingSongGame.BE.quick_match.cache.QuickMatchResultCache;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRepository;
 import SingSongGame.BE.room.persistence.GameStatus;
 import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.RoomRepository;
@@ -33,7 +36,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +61,8 @@ public class InGameService {
     private final QuickMatchResultService quickMatchResultService;
 
     private final Map<Long, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
+    private final QuickMatchResultCache quickMatchResultCache;
+    private final QuickMatchRepository quickMatchRoomRepository;
 
     // 게임을 시작하는 메소드
     @Transactional
@@ -303,7 +310,22 @@ public class InGameService {
         // ✅ QUICK_MATCH일 경우 MMR 계산
         if (room.getRoomType() == RoomType.QUICK_MATCH) {
             log.info("✅ [MMR 계산 시작] QUICK_MATCH 모드 실행됨");
-            quickMatchResultService.processResult(roomPlayers);
+
+            List<QuickMatchRoomPlayer> quickPlayers = roomPlayers.stream()
+                    .map(p -> new QuickMatchRoomPlayer(p.getUser(), p.getScore()))
+                    .collect(Collectors.toList());
+
+            // MMR 계산 실행
+            List<TierChangeResult> results = quickMatchResultService.processQuickMatchResult(quickPlayers);
+
+            QuickMatchRoom quickMatchRoom = quickMatchRoomRepository.findByRoom(room)
+                    .orElseThrow(() -> new IllegalStateException("QuickMatchRoom not found for Room"));
+
+            String roomCode = quickMatchRoom.getRoomCode();
+
+            // 결과 캐시에 저장
+            quickMatchResultCache.put(roomCode, results);
+
         }
 
         // ✅ 클라이언트에 전송
