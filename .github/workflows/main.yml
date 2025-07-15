@@ -59,7 +59,7 @@ jobs:
           # 컨테이너 재시작
           docker pull ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
           docker stop backend || true && docker rm backend || true
-          docker run -d --name backend -p 8080:8080 \
+          docker run -d --name backend -network host \
             -e SPRING_PROFILES_ACTIVE=prod \
             --env SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
             --env SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }} \
@@ -72,7 +72,7 @@ jobs:
             --env FRONTEND_REDIRECT_URL_PROD=${{ secrets.FRONTEND_REDIRECT_URL_PROD }} \
             --env JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} \
             --env REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} \
-            --env REDIS_HOST=host.docker.internal \
+            --env REDIS_HOST=localhost \
             --env REDIS_PORT=6379 \
             -e SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
             -e SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }} \
