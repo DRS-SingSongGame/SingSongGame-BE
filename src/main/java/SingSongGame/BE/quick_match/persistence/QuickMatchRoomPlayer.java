@@ -19,6 +19,11 @@ public class QuickMatchRoomPlayer {
 
     private int score;
 
+    public QuickMatchRoomPlayer(User user, int score) {
+        this.user = user;
+        this.score = score;
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
     private QuickMatchRoom room;

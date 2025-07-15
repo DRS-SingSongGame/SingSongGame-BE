@@ -1,6 +1,7 @@
 package SingSongGame.BE.quick_match.persistence;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.quick_match.application.rating.TierChangeResult;
 import SingSongGame.BE.room.persistence.Room;
 import jakarta.persistence.*;
 import lombok.*;
@@ -50,4 +51,7 @@ public class QuickMatchRoom {
                 .map(QuickMatchRoomPlayer::getUser)
                 .collect(Collectors.toList());
     }
+
+    @Transient
+    private List<TierChangeResult> cachedTierResults;
 }
