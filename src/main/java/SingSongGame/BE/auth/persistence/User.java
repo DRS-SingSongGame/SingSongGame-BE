@@ -39,7 +39,15 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<InGame> inGames = new ArrayList<>();
 
+    @Column(nullable = false)
+    @Builder.Default
+    private int quickMatchMmr = 950;
+
     public void updateUserName(String name) {
         this.name = name;
+    }
+
+    public void updateQuickMatchMmr(int newMmr){
+        this.quickMatchMmr = newMmr;
     }
 }

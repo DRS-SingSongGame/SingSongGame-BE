@@ -6,6 +6,8 @@ import SingSongGame.BE.in_game.persistence.GameSession;
 import SingSongGame.BE.in_game.persistence.GameSessionRepository;
 import SingSongGame.BE.in_game.persistence.InGame;
 import SingSongGame.BE.in_game.persistence.InGameRepository;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRepository;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRoomPlayerRepository;
 import SingSongGame.BE.room.application.converter.RoomRequestConverter;
 import SingSongGame.BE.room.application.converter.RoomResponseConverter;
 import SingSongGame.BE.room.application.dto.request.CreateRoomRequest;
@@ -17,6 +19,7 @@ import SingSongGame.BE.room.application.dto.response.JoinRoomResponse;
 import SingSongGame.BE.room.persistence.GameStatus;
 import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.RoomRepository;
+import SingSongGame.BE.room.persistence.RoomType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +42,8 @@ public class RoomService {
     private final RoomRequestConverter requestConverter;
     private final RoomResponseConverter responseConverter;
     private final GameSessionRepository gameSessionRepository;
+    private final QuickMatchRepository quickMatchRepository;
+    private final QuickMatchRoomPlayerRepository quickMatchRoomPlayerRepository;
 
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request, User hostUser) {
@@ -162,6 +167,14 @@ public class RoomService {
                 //roomRepository.save(room);
 
             } else {
+
+                if (room.getRoomType() == RoomType.QUICK_MATCH) {
+                    // 빠른대전 방 관련 데이터 삭제
+                    quickMatchRepository.findByRoom(room).ifPresent(quickRoom -> {
+                        quickMatchRoomPlayerRepository.deleteAllByRoom(quickRoom);
+                        quickMatchRepository.delete(quickRoom);
+                    });
+                }
                 // 남은 사람이 없으면 GameSession과 Room 삭제
                 gameSessionRepository.findById(roomId).ifPresent(gameSessionRepository::delete);
                 roomRepository.delete(room);

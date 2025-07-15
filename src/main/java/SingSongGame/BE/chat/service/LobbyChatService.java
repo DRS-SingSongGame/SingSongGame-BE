@@ -10,6 +10,8 @@ import SingSongGame.BE.online.persistence.OnlineUser;
 import SingSongGame.BE.online.persistence.OnlineUserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import SingSongGame.BE.quick_match.application.rating.Tier;
+import SingSongGame.BE.quick_match.application.rating.TierService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,6 +33,7 @@ public class LobbyChatService {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private final SimpMessageSendingOperations sendingOperations;
+    private final TierService tierService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final OnlineUserRepository onlineUserRepository;
@@ -41,12 +44,14 @@ public class LobbyChatService {
             @Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate,
             ObjectMapper objectMapper,
             OnlineUserService onlineUserService,
-            OnlineUserRepository onlineUserRepository) {
+            OnlineUserRepository onlineUserRepository,
+            TierService tierService) {
         this.sendingOperations = sendingOperations;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.onlineUserService = onlineUserService;
         this.onlineUserRepository = onlineUserRepository;
+        this.tierService = tierService;
     }
 
 
@@ -73,6 +78,9 @@ public class LobbyChatService {
     }
 
     public void sendUserEnterLobby(User user) {
+        Tier tier = tierService.getTierByMmr(user.getQuickMatchMmr()); // ✅ MMR로 티어 계산
+        String tierLabel = tierService.getTierLabel(tier);
+
         ChatMessage chatMessage = ChatMessage.builder()
                 .type(ChatMessage.MessageType.ENTER)
                 .roomId("lobby")
@@ -80,6 +88,7 @@ public class LobbyChatService {
                 .senderName(user.getName())
                 .message(user.getName() + "님이 로비에 입장했습니다.")
                 .timestamp(LocalDateTime.now().format(ISO_FORMATTER).toString())
+                .tier(tierLabel)
                 .build();
 
         onlineUserService.addUser(user.getId(), user.getName(), user.getImageUrl(), OnlineLocation.LOBBY);

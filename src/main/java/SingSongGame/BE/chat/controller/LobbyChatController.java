@@ -1,6 +1,7 @@
 package SingSongGame.BE.chat.controller;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.chat.config.StompPrincipal;
 import SingSongGame.BE.chat.dto.LobbyChatRequest;
 import SingSongGame.BE.chat.service.LobbyChatService;
 import SingSongGame.BE.user.application.UserService;
@@ -19,36 +20,70 @@ import java.time.LocalDateTime;
 @Controller
 @RequiredArgsConstructor
 public class LobbyChatController {
-
+    private final UserService userService; // ✅ 이게 꼭 있어야 함
     private final LobbyChatService lobbyChatService;
-    private final UserService userService;
 
     @MessageMapping("/lobby/chat")
-    public void sendLobbyMessage(@Payload LobbyChatRequest request, SimpMessageHeaderAccessor headerAccessor) {
-        Principal auth = headerAccessor.getUser();
-        String email = null;
+    public void sendLobbyMessage(@Payload LobbyChatRequest request, Principal principal) {
+        if (principal instanceof StompPrincipal stompPrincipal) {
+            Long userId = stompPrincipal.getUserId();
+            String nickname = stompPrincipal.getNickname();
 
-        // 2) Authentication → UsernamePasswordAuthenticationToken 으로 캐스팅
-        if (auth instanceof UsernamePasswordAuthenticationToken token) {
+            log.info("✅ 채팅 요청자 - ID: {}, 닉네임: {}", userId, nickname);
 
-            // 3) token.getPrincipal() → 실제 User 객체
-            Object rawPrincipal = token.getPrincipal();
-            if (rawPrincipal instanceof User userEntity) {
-
-                // 4) 이제 email 꺼내기
-                email = userEntity.getEmail();
-                log.info("사용자 이메일: {}", email);
+            User user = userService.findById(userId);
+            if (user == null) {
+                log.warn("사용자 정보를 찾을 수 없습니다. ID: {}", userId);
+                return;
             }
+
+            log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
+            lobbyChatService.sendLobbyMessage(request, user);
+        } else {
+            log.warn("❌ 인증된 사용자가 아님. principal = {}", principal);
         }
-
-        // 사용자 이름으로 User 객체 조회
-        User user = userService.findByEmail(email);
-
-        log.info("현재 사용자 : {}", user.getName());
-        
-        log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
-        
-        // 클라이언트에서 보낸 정보를 그대로 사용하여 Redis에 발행
-        lobbyChatService.sendLobbyMessage(request, user);
     }
-} 
+//
+//    private final LobbyChatService lobbyChatService;
+//    private final UserService userService;
+//
+//    @MessageMapping("/lobby/chat")
+//    public void sendLobbyMessage(@Payload LobbyChatRequest request, SimpMessageHeaderAccessor headerAccessor) {
+//
+//        headerAccessor.getMessageHeaders().forEach((key, value) -> {
+//            System.out.println("Header Key: " + key + ", Value: " + value);
+//        });
+//
+//        Principal auth = headerAccessor.getUser();
+//        String email = null;
+//
+//        // 2) Authentication → UsernamePasswordAuthenticationToken 으로 캐스팅
+//        if (auth instanceof UsernamePasswordAuthenticationToken token) {
+//
+//            // 3) token.getPrincipal() → 실제 User 객체
+//            Object rawPrincipal = token.getPrincipal();
+//            if (rawPrincipal instanceof User userEntity) {
+//
+//                // 4) 이제 email 꺼내기
+//                email = userEntity.getEmail();
+//                log.info("사용자 이메일: {}", email);
+//            }
+//        }
+//
+//
+//
+//        // 사용자 이름으로 User 객체 조회
+//        User user = userService.findByEmail(email);
+//
+//        log.info("현재 사용자 : {}", user.getName());
+//
+////        if (user == null) {
+////            log.warn("사용자를 찾을 수 없습니다: {}", username);
+////            return;
+////        }
+//
+//        log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
+//        lobbyChatService.sendLobbyMessage(user, request.getMessage());
+//    }
+}
+

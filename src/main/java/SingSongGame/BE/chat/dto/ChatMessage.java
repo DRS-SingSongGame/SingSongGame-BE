@@ -31,6 +31,7 @@ public class ChatMessage {
     private String senderName;
     private String message;
     private String timestamp;
+    private String tier;
 }
 
 

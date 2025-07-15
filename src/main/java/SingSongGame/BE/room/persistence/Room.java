@@ -3,6 +3,7 @@ package SingSongGame.BE.room.persistence;
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.in_game.persistence.GameSession;
 import SingSongGame.BE.in_game.persistence.InGame;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRoom;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 public class Room {
 
     @Id @GeneratedValue
@@ -24,6 +26,7 @@ public class Room {
 
     @Enumerated(EnumType.STRING)
     private RoomType roomType;
+    private String roomCode;
 
     private Boolean isPrivate;
 
@@ -54,7 +57,12 @@ public class Room {
         this.id = id;
     }
 
+    @OneToOne(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private QuickMatchRoom quickMatchRoom;
 
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<RoomPlayer> players = new ArrayList<>();
 
     public void changeHost(User newHost) {
         this.host = newHost;

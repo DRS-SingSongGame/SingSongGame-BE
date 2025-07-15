@@ -13,6 +13,10 @@ import SingSongGame.BE.room.persistence.GameStatus;
 import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.RoomRepository;
 import SingSongGame.BE.room_keyword.KeywordService;
+import SingSongGame.BE.quick_match.application.QuickMatchResultService;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRoom;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRoomPlayer;
+import SingSongGame.BE.room.persistence.*;
 import SingSongGame.BE.song.application.SongService;
 import SingSongGame.BE.song.application.dto.response.SongResponse;
 import SingSongGame.BE.song.persistence.Song;
@@ -49,6 +53,7 @@ public class InGameService {
     private final KeywordService keywordService;
     private final TaskScheduler taskScheduler;
     private final ApplicationContext applicationContext;
+    private final QuickMatchResultService quickMatchResultService;
 
     private final Map<Long, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
 
@@ -57,6 +62,10 @@ public class InGameService {
     public void startGame(Long roomId, Set<String> keywords) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with id: " + roomId));
+
+        if (room.getRoomType() == RoomType.QUICK_MATCH) {
+            room.setMaxRound(2); // ⚠️ 테스트용 (배포 시 5로 변경)
+        }
 
         // ✅ 기존 GameSession 조회 또는 새로 생성
         GameSession gameSession = gameSessionRepository.findById(roomId)
@@ -84,6 +93,19 @@ public class InGameService {
         }
 
         gameSessionRepository.save(gameSession);
+
+        if (room.getRoomType() == RoomType.QUICK_MATCH) {
+            List<User> users = room.getQuickMatchRoom().getUsers();
+            for (User user : users) {
+                InGame inGame = InGame.builder()
+                        .user(user)
+                        .room(room)
+                        .score(0)
+                        .build();
+                inGameRepository.save(inGame);
+                log.info("✅ [QuickMatch] InGame 생성: userId={}, roomId={}", user.getId(), room.getId());
+            }
+        }
         // ✅ 저장 직후 바로 확인
         System.out.println("🎮 저장된 키워드: " + gameSession.getKeywords());
 
@@ -222,6 +244,7 @@ public class InGameService {
     // 플레이어의 스코어를 증가시키는 메소드
     @Transactional
     public int addScore(User user, Long roomId, int scoreToAdd) {
+        log.info("🔍 addScore() 호출: user={}, roomId={}, scoreToAdd={}", user.getId(), roomId, scoreToAdd);
          InGame inGame = inGameRepository.findByUserAndRoom(user, new Room(roomId))
                  .orElseThrow(() -> new IllegalArgumentException("InGame 정보가 없습니다."));
 
@@ -243,22 +266,47 @@ public class InGameService {
         GameSession gameSession = gameSessionRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
-        // ✅ 결과 먼저 계산
-        List<FinalResult> finalResults = gameSession.getPlayerScores().entrySet().stream()
+        Room room = gameSession.getRoom();
+        log.info("✅ RoomType = {}", room.getRoomType());
+        List<RoomPlayer> roomPlayers = room.getPlayers();
+        log.info("✅ RoomPlayers: {}", roomPlayers.stream().map(p -> p.getUser().getId()).toList());
+
+        // ✅ 모든 RoomPlayer 기준으로 점수 보장
+        Map<Long, Integer> finalScoreMap = new HashMap<>(gameSession.getPlayerScores());
+        for (RoomPlayer player : roomPlayers) {
+            finalScoreMap.putIfAbsent(player.getUser().getId(), 0);
+        }
+
+        // ✅ 결과 생성
+        List<FinalResult> finalResults = finalScoreMap.entrySet().stream()
                 .map(entry -> new FinalResult(entry.getKey(), entry.getValue()))
                 .toList();
 
         GameEndResponse response = new GameEndResponse(finalResults);
-        log.info("🔥 Final Player Scores: {}", gameSession.getPlayerScores());
+        log.info("🔥 Final Player Scores: {}", finalScoreMap);
         log.info("🔥 Final Results to send: {}", finalResults);
 
-        // ✅ 그 이후에 상태 초기화
+        // ✅ 상태 초기화
         gameSession.updateGameStatus(GameStatus.WAITING);
         gameSession.resetForNewGame();
         resetInGameScores(roomId);
         gameSessionRepository.save(gameSession);
 
-        // ✅ 클라이언트에게 전송
+        // ✅ 각 RoomPlayer에 점수 반영
+        for (RoomPlayer player : roomPlayers) {
+            Long userId = player.getUser().getId();
+            int score = finalScoreMap.getOrDefault(userId, 0);
+            player.setScore(score); // RoomPlayer에 setScore 메서드 필요
+            log.info("📌 [Score Copy] userId={}, copiedScore={}", userId, score);
+        }
+
+        // ✅ QUICK_MATCH일 경우 MMR 계산
+        if (room.getRoomType() == RoomType.QUICK_MATCH) {
+            log.info("✅ [MMR 계산 시작] QUICK_MATCH 모드 실행됨");
+            quickMatchResultService.processResult(roomPlayers);
+        }
+
+        // ✅ 클라이언트에 전송
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-end", response);
     }
 
