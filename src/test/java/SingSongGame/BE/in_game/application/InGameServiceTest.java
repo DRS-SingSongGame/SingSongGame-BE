@@ -116,7 +116,6 @@ class InGameServiceTest {
 
         // GameSession이 저장되었는지와 상태를 확인합니다.
         assertThat(savedSessions).hasSize(1);
-        assertThat(savedSessions).hasSize(0);
         GameSession saved = savedSessions.get(0);
         assertThat(saved.getGameStatus()).isEqualTo(GameStatus.IN_PROGRESS);
         assertThat(saved.getKeywords()).isEqualTo(keywords);
