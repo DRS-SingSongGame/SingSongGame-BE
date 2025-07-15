@@ -3,25 +3,27 @@ package SingSongGame.BE.quick_match.presentation;
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.common.response.ApiResponseGenerator;
 import SingSongGame.BE.common.response.MessageCode;
+import SingSongGame.BE.in_game.application.InGameService;
 import SingSongGame.BE.quick_match.application.QuickLogicService;
 import SingSongGame.BE.quick_match.application.QuickMatchQueueService;
 import SingSongGame.BE.quick_match.application.QuickMatchService;
 import SingSongGame.BE.quick_match.application.dto.request.QuickMatchRequest;
 import SingSongGame.BE.quick_match.application.dto.response.QuickMatchResultResponse;
 import SingSongGame.BE.quick_match.application.rating.TierChangeResult;
+import SingSongGame.BE.quick_match.cache.QuickMatchResultCache;
+import SingSongGame.BE.quick_match.persistence.QuickMatchRepository;
 import SingSongGame.BE.quick_match.persistence.QuickMatchRoom;
 import SingSongGame.BE.user.application.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,6 +35,9 @@ public class QuickMatchController {
     private final QuickLogicService quickLogicService;
     private final QuickMatchService quickMatchService;
     private static final Logger log = LoggerFactory.getLogger(QuickMatchController.class);
+    private final QuickMatchRepository quickMatchRoomRepository;
+    private final InGameService inGameService;
+    private final QuickMatchResultCache quickMatchResultCache;
 
     @PostMapping("/enter")
     public ResponseEntity<?> enterQuickMatch(@RequestParam Long userId) {
@@ -43,6 +48,24 @@ public class QuickMatchController {
 
     }
 
+    @GetMapping("/result")
+    public ResponseEntity<?> getResult(@RequestParam String roomCode) {
+        log.info("📥 [GET] /result 요청됨 - roomCode={}", roomCode);
+        QuickMatchRoom room = quickMatchRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new IllegalArgumentException("해당 룸을 찾을 수 없습니다."));
+
+        List<TierChangeResult> result = quickMatchResultCache.get(roomCode);
+        if (result == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("아직 MMR 결과가 준비되지 않았습니다.");
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("roomId", room.getId());
+        response.put("players", result);
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/end")
     public ResponseEntity<?> endQuickMatch(@RequestParam String roomCode) {
         log.info("📥 [POST] /api/quick-match/end 호출됨 - roomCode={}", roomCode);
@@ -50,14 +73,8 @@ public class QuickMatchController {
         QuickMatchRoom room = quickMatchService.findByRoomCode(roomCode);
         log.info("✅ QuickMatchRoom 조회 완료 - roomId={}, roomStarted={}", room.getRoom().getId(), room.isGameStarted());
 
-        List<TierChangeResult> resultList = quickMatchService.endGame(room);
-        log.info("📤 게임 종료 및 MMR 계산 완료 - 변경된 유저 수={}", resultList.size());
+//        quickMatchService.endGame(room); // 더 이상 결과를 받아올 필요 없음
 
-        QuickMatchResultResponse response = QuickMatchResultResponse.of(
-                room.getRoom().getId(),
-                resultList
-        );
-
-        return ApiResponseGenerator.success(response, HttpStatus.OK, MessageCode.SUCCESS);
+        return ApiResponseGenerator.success(null, HttpStatus.OK, MessageCode.SUCCESS);
     }
 }
