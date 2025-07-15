@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CreateRoomResponse {
     private Long id;
+    private int maxRound;
 }

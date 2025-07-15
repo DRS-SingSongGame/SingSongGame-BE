@@ -9,6 +9,7 @@ import SingSongGame.BE.common.response.ApiResponseBody;
 import SingSongGame.BE.common.response.ApiResponseGenerator;
 import SingSongGame.BE.common.response.MessageCode;
 import SingSongGame.BE.in_game.dto.request.AnswerRequest;
+import SingSongGame.BE.in_game.dto.request.GameStartRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 import java.util.Date;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -32,11 +34,32 @@ public class AiGameController {
 
     @Operation(summary = "AI 게임 시작")
     @PostMapping("/{roomId}/start")
-    public ApiResponse<ApiResponseBody.SuccessBody<Void>> startGame(@PathVariable Long roomId) {
-        aiGameService.startGame(roomId);
-        aiGameService.startNextRound(roomId);
-        return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
+    public ApiResponse<ApiResponseBody.SuccessBody<Void>> startGame(@PathVariable Long roomId, @RequestBody(required = false) GameStartRequest request) {
+        log.info("🚀 [게임 시작 요청] roomId: {}", roomId);
+        log.info("📝 [요청 데이터] request: {}", request);
+        Set<String> keywords = (request != null) ? request.keywords() : Set.of(); // null-safe 처리
+
+        log.info("🏷️  [키워드 처리] keywords: {}", keywords);
+        log.info("📊 [키워드 개수] size: {}", keywords.size());
+        if (keywords.isEmpty()) {
+            log.warn("⚠️  [키워드 없음] 모든 곡에서 랜덤 선택됩니다.");
+        } else {
+            log.info("✅ [키워드 있음] 다음 키워드로 필터링: {}", String.join(", ", keywords));
+        }
+
+        try {
+            aiGameService.startGame(roomId, keywords);
+            log.info("✅ [게임 시작 완료] roomId: {}", roomId);
+
+
+            return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
+        } catch (Exception e) {
+            log.error("❌ [게임 시작 실패] roomId: {}, error: {}", roomId, e.getMessage(), e);
+            throw e;
+        }
     }
+
+
 
 
     @PostMapping("/{roomId}/tts-finished")

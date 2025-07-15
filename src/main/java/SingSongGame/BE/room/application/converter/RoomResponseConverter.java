@@ -1,18 +1,15 @@
 package SingSongGame.BE.room.application.converter;
 
-import SingSongGame.BE.auth.persistence.User;
-import SingSongGame.BE.in_game.persistence.InGame;
 import SingSongGame.BE.in_game.persistence.InGameRepository;
 import SingSongGame.BE.room.application.dto.response.CreateRoomResponse;
 import SingSongGame.BE.room.application.dto.response.GetRoomResponse;
 import SingSongGame.BE.room.application.dto.response.PlayerInfo;
-import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.GameStatus;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
+import SingSongGame.BE.room.persistence.Room;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -20,9 +17,10 @@ public class RoomResponseConverter {
 
     private final InGameRepository inGameRepository;
 
-    public CreateRoomResponse from(Long roomId) {
+    public CreateRoomResponse from(Room room) {
         return CreateRoomResponse.builder()
-                .id(roomId)
+                .id(room.getId())
+                .maxRound(room.getMaxRound()) // ✅ 추가된 필드
                 .build();
     }
 
@@ -35,12 +33,20 @@ public class RoomResponseConverter {
                         .build())
                 .collect(Collectors.toList());
 
+        // 🔑 QuickMatchRoom이 연결되어 있다면 roomCode를 가져온다
+        String roomCode = null;
+        if (room.getQuickMatchRoom() != null) {
+            roomCode = room.getQuickMatchRoom().getRoomCode();
+        }
+
         return GetRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
+                .roomCode(roomCode) // ✅ 여기만 수정됨!
                 .roomType(room.getRoomType())
                 .isPrivate(room.getIsPrivate())
                 .maxPlayer(room.getMaxPlayer())
+                .maxRound(room.getMaxRound())
                 .gameStatus(gameStatus)
                 .hostId(room.getHost().getId())
                 .hostName(room.getHost().getName())

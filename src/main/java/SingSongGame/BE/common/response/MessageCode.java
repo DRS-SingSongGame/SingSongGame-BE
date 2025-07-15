@@ -10,7 +10,8 @@ public enum MessageCode {
     REISSUE("200", "ACCESS TOKEN 재발급 성공"),
     SUCCESS("200", "요청 성공"),
     ENTER_LOBBY("200", "로비 입장 성공"),
-    EXIT_LOBBY("200", "로비 퇴장 성공");
+    EXIT_LOBBY("200", "로비 퇴장 성공"),
+    FAIL("400", "요청 실패");
 
 
     private final String code;
