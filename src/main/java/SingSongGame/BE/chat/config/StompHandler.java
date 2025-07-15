@@ -1,4 +1,4 @@
-package SingSongGame.BE.chat;
+package SingSongGame.BE.chat.config;
 
 import SingSongGame.BE.auth.persistence.User;
 import SingSongGame.BE.chat.service.LobbyChatService;

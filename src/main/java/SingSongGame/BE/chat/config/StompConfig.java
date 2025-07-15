@@ -1,6 +1,6 @@
 package SingSongGame.BE.chat.config;
 
-import SingSongGame.BE.chat.StompHandler;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
