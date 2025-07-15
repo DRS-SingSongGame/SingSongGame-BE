@@ -1,6 +1,7 @@
 package SingSongGame.BE.chat;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.chat.config.StompPrincipal;
 import SingSongGame.BE.chat.service.LobbyChatService;
 import SingSongGame.BE.common.util.JwtProvider;
 import SingSongGame.BE.online.persistence.SessionUserRegistry;
@@ -71,12 +72,10 @@ public class StompHandler implements ChannelInterceptor {
                             Long userId = jwtProvider.getUserIdFromToken(token);
                             User user = userService.findById(userId);
                             if (user != null) {
-                                UsernamePasswordAuthenticationToken authToken =
-                                        new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.emptyList());
-
-                                accessor.setUser(authToken);
-                                sessionUserRegistry.register(accessor.getSessionId(), userId);
-                                log.info("✅ 사용자 인증 성공: {} (userId: {})", user.getEmail(), userId);
+                                StompPrincipal principal = new StompPrincipal(user.getId(), user.getName()); // 또는 getNickname()
+                                accessor.setUser(principal); // ✅ 여기!
+                                sessionUserRegistry.register(accessor.getSessionId(), user.getId());
+                                log.info("✅ Principal 등록됨: userId={}, nickname={}", user.getId(), user.getName());
                             } else {
                                 log.warn("사용자를 찾을 수 없음: userId={}", userId);
                             }
@@ -94,10 +93,9 @@ public class StompHandler implements ChannelInterceptor {
                                 User user = userService.findById(userId); // 👈 실제 User 객체 조회
 
                                 if (user != null) {
-                                    UsernamePasswordAuthenticationToken authToken =
-                                            new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
+                                    StompPrincipal principal = new StompPrincipal(user.getId(), nickname);
 
-                                    accessor.setUser(authToken); // 👈 진짜 User를 넣기
+                                    accessor.setUser(principal); // 👈 진짜 User를 넣기
                                     sessionUserRegistry.register(accessor.getSessionId(), userId);
                                     log.info("✅ 사용자 인증 (토큰 없이) 성공: {} (userId: {})", nickname, userId);
                                 } else {

@@ -6,6 +6,8 @@ public record LoginResponse(
         boolean isFirstLogin,
         Long userId,
         String email,
-        String name
+        String name,
+        int mmr
+
 )
 {}

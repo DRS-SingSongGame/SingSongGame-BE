@@ -60,7 +60,9 @@ public class AuthService {
                 user.isFirstLogin(),
                 user.getId(),
                 user.getEmail(),
-                user.getName()
+                user.getName(),
+                user.getQuickMatchMmr()
+
         );
     }
 

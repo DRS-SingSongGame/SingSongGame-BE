@@ -24,18 +24,14 @@ public class LobbyChatController {
     private final LobbyChatService lobbyChatService;
 
     @MessageMapping("/lobby/chat")
-    public void sendLobbyMessage(@Payload LobbyChatRequest request, SimpMessageHeaderAccessor headerAccessor) {
-
-        Principal auth = headerAccessor.getUser();
-        if (auth instanceof StompPrincipal stompPrincipal) {
+    public void sendLobbyMessage(@Payload LobbyChatRequest request, Principal principal) {
+        if (principal instanceof StompPrincipal stompPrincipal) {
             Long userId = stompPrincipal.getUserId();
             String nickname = stompPrincipal.getNickname();
 
             log.info("✅ 채팅 요청자 - ID: {}, 닉네임: {}", userId, nickname);
 
-            // 닉네임이나 ID로 사용자 조회
-            User user = userService.findById(userId); // 또는 nickname으로 조회할 수도 있음
-
+            User user = userService.findById(userId);
             if (user == null) {
                 log.warn("사용자 정보를 찾을 수 없습니다. ID: {}", userId);
                 return;
@@ -44,9 +40,9 @@ public class LobbyChatController {
             log.info("로비 채팅 메시지: {} - {}", user.getName(), request.getMessage());
             lobbyChatService.sendLobbyMessage(request, user);
         } else {
-            log.warn("인증된 사용자가 아님.");
+            log.warn("❌ 인증된 사용자가 아님. principal = {}", principal);
         }
-}
+    }
 //
 //    private final LobbyChatService lobbyChatService;
 //    private final UserService userService;

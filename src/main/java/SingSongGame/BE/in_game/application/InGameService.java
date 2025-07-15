@@ -63,6 +63,10 @@ public class InGameService {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with id: " + roomId));
 
+        if (room.getRoomType() == RoomType.QUICK_MATCH) {
+            room.setMaxRound(2); // ⚠️ 테스트용 (배포 시 5로 변경)
+        }
+
         // ✅ 기존 GameSession 조회 또는 새로 생성
         GameSession gameSession = gameSessionRepository.findById(roomId)
                 .orElse(null);

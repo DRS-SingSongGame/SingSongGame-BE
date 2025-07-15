@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -89,6 +90,14 @@ public class QuickMatchResultService {
     }
 
     public List<TierChangeResult> processQuickMatchResult(List<QuickMatchRoomPlayer> quickPlayers) {
+        // 1. 플레이어별 oldMmr 미리 저장
+        Map<Long, Integer> oldMmrMap = quickPlayers.stream()
+                .collect(Collectors.toMap(
+                        p -> p.getUser().getId(),
+                        p -> p.getUser().getQuickMatchMmr()
+                ));
+
+        // 2. GlickoPlayer 변환
         List<GlickoPlayer> glickoPlayers = quickPlayers.stream()
                 .map(p -> new GlickoPlayer(
                         p.getUser().getId(),
@@ -97,15 +106,18 @@ public class QuickMatchResultService {
                 ))
                 .toList();
 
+        // 3. 점수에 따라 정렬
         List<QuickMatchRoomPlayer> sorted = new ArrayList<>(quickPlayers);
         sorted.sort(Comparator.comparingInt(QuickMatchRoomPlayer::getScore).reversed());
 
+        // 4. Glicko 점수 매핑
         double[] glickoScores = {1.0, 0.8, 0.6, 0.4, 0.2, 0.0};
         Map<Long, Double> glickoScoreMap = new HashMap<>();
         for (int i = 0; i < sorted.size(); i++) {
             glickoScoreMap.put(sorted.get(i).getUser().getId(), glickoScores[i]);
         }
 
+        // 5. MatchResult 생성
         List<MatchResult> matchResults = quickPlayers.stream()
                 .map(p -> new MatchResult(
                         p.getUser().getId(),
@@ -115,6 +127,7 @@ public class QuickMatchResultService {
                 ))
                 .toList();
 
+        // 6. Glicko 계산
         for (GlickoPlayer player : glickoPlayers) {
             List<MatchResult> opponents = matchResults.stream()
                     .filter(r -> r.getPlayerId() != player.getUserId())
@@ -122,16 +135,21 @@ public class QuickMatchResultService {
             glickoRatingService.updatePlayer(player, opponents);
         }
 
+        // 7. User MMR 및 티어 업데이트
         List<TierChangeResult> resultList = new ArrayList<>();
         for (GlickoPlayer updated : glickoPlayers) {
             userRepository.findById(updated.getUserId()).ifPresent(user -> {
-                int oldMmr = user.getQuickMatchMmr();
+                int oldMmr = oldMmrMap.getOrDefault(user.getId(), 950); // 🔥 변경 전 MMR
                 Tier oldTier = Tier.fromMmr(oldMmr);
                 int newMmr = (int) Math.round(updated.getRating());
                 Tier newTier = Tier.fromMmr(newMmr);
 
                 user.updateQuickMatchMmr(newMmr);
                 userRepository.save(user);
+
+                log.info("✅ MMR 및 티어 업데이트: userId={}, {} → {}, {} → {}",
+                        user.getId(), oldMmr, newMmr,
+                        oldTier.getDisplayName(), newTier.getDisplayName());
 
                 resultList.add(new TierChangeResult(
                         user.getId(), oldMmr, newMmr, oldTier, newTier
