@@ -73,8 +73,12 @@ public class QuickMatchController {
         QuickMatchRoom room = quickMatchService.findByRoomCode(roomCode);
         log.info("✅ QuickMatchRoom 조회 완료 - roomId={}, roomStarted={}", room.getRoom().getId(), room.isGameStarted());
 
-//        quickMatchService.endGame(room); // 더 이상 결과를 받아올 필요 없음
-
         return ApiResponseGenerator.success(null, HttpStatus.OK, MessageCode.SUCCESS);
+    }
+
+    @PostMapping("/leave")
+    public ResponseEntity<Void> leaveQueue(@RequestBody QuickMatchRequest quickMatchRequest) {
+        quickMatchQueueService.removeFromQueue(quickMatchRequest.userId());
+        return ResponseEntity.ok().build();
     }
 }
