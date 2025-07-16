@@ -44,21 +44,19 @@ public class SongCsvLoader implements CommandLineRunner {
                 .withIgnoreLeadingWhiteSpace(true)
                 .build();
 
-        // 전체 파싱 후 랜덤 50개 선택
+        // 전체 데이터 사용
         List<SongCSV> songs = csvToBean.parse();
-        Collections.shuffle(songs);
-        List<SongCSV> randomSongs = songs.stream().limit(300).toList();
 
-        for (SongCSV dto : randomSongs) {
+        for (SongCSV dto : songs) {
             String tagsRaw = Optional.ofNullable(dto.getTags()).orElse("");
             List<Tag> tagList = Arrays.stream(tagsRaw.split(","))
                     .map(String::trim)
                     .filter(t -> !t.isBlank())
+                    .distinct()  // 태그 이름에서 먼저 중복 제거
                     .map(tagName ->
                             tagRepository.findByName(tagName)
                                     .orElseGet(() -> tagRepository.save(new Tag(tagName)))
                     )
-                    .distinct()
                     .collect(Collectors.toList());
 
             Song song = Song.builder()
@@ -74,7 +72,7 @@ public class SongCsvLoader implements CommandLineRunner {
             songRepository.save(song);
         }
 
-        System.out.println("✅ 랜덤으로 " + randomSongs.size() + "개의 노래를 저장했습니다.");
+        System.out.println("✅ 총 " + songs.size() + "개의 노래를 저장했습니다.");
     }
 }
 
