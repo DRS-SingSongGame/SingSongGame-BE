@@ -68,11 +68,7 @@ class InGameServiceTest {
     
     @InjectMocks
     private InGameService inGameService;
-    
-    private Room testRoom;
-    private User testUser;
-    private GameSession existingGameSession;
-    private Set<String> testKeywords;
+
 
     @BeforeEach
     void setUp() {
@@ -98,6 +94,7 @@ class InGameServiceTest {
                     return gs;
                 });
 
+
         // 메시지 전송 내용을 수집합니다.
         final List<String> destinations = new ArrayList<>();
         final List<Object> payloads = new ArrayList<>();
@@ -110,6 +107,7 @@ class InGameServiceTest {
         // 스케줄러는 실제 실행되지 않도록 더미 값을 반환합니다.
         when(taskScheduler.schedule(any(Runnable.class), any(Date.class)))
                 .thenReturn(null);
+
 
         // startGame 메서드 실행
         inGameService.startGame(roomId, keywords);
