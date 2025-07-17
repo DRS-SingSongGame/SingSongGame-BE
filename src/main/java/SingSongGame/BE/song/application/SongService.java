@@ -25,19 +25,18 @@ public class SongService {
 
     @Transactional
     public Song getRandomSong() {
-        return getRandomSong(Collections.emptySet());
+        return getRandomSong(Collections.emptySet(), null);
     }
 
     @Transactional
     public Song getRandomSong(Set<Long> usedSongIds) {
-        List<Song> candidates;
+        return getRandomSong(usedSongIds, null);
+    }
 
-        if (usedSongIds.isEmpty()) {
-            // 아무 것도 제외할 게 없으면 전체 목록 사용
-            candidates = songRepository.findAll();
-        } else {
-            candidates = songRepository.findAllExcluding(usedSongIds);
-        }
+    @Transactional
+    public Song getRandomSong(Set<Long> usedSongIds, String excludeArtist) {
+        // 모든 조건을 한 번에 처리하는 Repository 메서드 사용
+        List<Song> candidates = songRepository.findRandomCandidates(usedSongIds, excludeArtist);
 
         if (candidates.isEmpty()) {
             return null; // 더 이상 출제할 노래가 없음
@@ -47,33 +46,50 @@ public class SongService {
     }
 
     @Transactional(readOnly = true)
-    public Song getRandomSongByTagNames(Set<String> keywordNames, Set<Long> usedSongIds) {
+    public Song getRandomSongByTagNames(Set<String> keywordNames, Set<Long> usedSongIds, String excludeArtist) {
         // ✅ 전체 선택이거나 아무 태그 없음 → 전체 랜덤 (tags와 함께 조회)
         System.out.println("🎵 검색할 키워드들: " + keywordNames);
+        System.out.println("🎵 제외할 가수: " + excludeArtist);
 
         if (keywordNames == null || keywordNames.isEmpty() || keywordNames.contains("전체")) {
             System.out.println("🎵 전체 랜덤 선택됨");
             List<Song> allSongs = songRepository.findAllWithTagsExcluding(usedSongIds);
-            if (allSongs.isEmpty()) {
-                throw new IllegalStateException("출제 가능한 노래가 없습니다.");
-            }
-            return allSongs.get(new Random().nextInt(allSongs.size()));
+            return selectSongExcludingArtist(allSongs, excludeArtist);
         }
+
         System.out.println("🎵 키워드 기반 검색");
         List<Tag> tags = tagRepository.findByNameIn(keywordNames);
         List<Long> tagIds = tags.stream().map(Tag::getId).toList();
 
-        // ✅ 이미 JOIN FETCH가 있으니 그대로 사용
         List<Song> candidates = songRepository.findSongsByTagIds(tagIds)
                 .stream()
                 .filter(song -> !usedSongIds.contains(song.getId()))
                 .toList();
 
+        return selectSongExcludingArtist(candidates, excludeArtist);
+    }
+
+    private Song selectSongExcludingArtist(List<Song> candidates, String excludeArtist) {
         if (candidates.isEmpty()) {
             throw new IllegalStateException("출제 가능한 노래가 없습니다.");
         }
 
-        return candidates.get(new Random().nextInt(candidates.size()));
+        // 이전 가수와 다른 노래만 필터링
+        List<Song> filteredCandidates = candidates;
+
+        if (excludeArtist != null && !excludeArtist.isBlank()) {
+            filteredCandidates = candidates.stream()
+                    .filter(song -> !excludeArtist.equals(song.getArtist()))
+                    .toList();
+        }
+
+        // 필터링된 후보가 없으면 전체 후보 사용
+        if (filteredCandidates.isEmpty()) {
+            System.out.println("⚠️ 이전 가수 제외 후 후보가 없음. 전체 후보 사용");
+            filteredCandidates = candidates;
+        }
+
+        return filteredCandidates.get(new Random().nextInt(filteredCandidates.size()));
     }
 
     @Transactional(readOnly = true)

@@ -144,17 +144,19 @@ public class InGameService {
             return;
         }
 
+        String currentArtist = gameSession.getCurrentSong() != null ?
+                gameSession.getCurrentSong().getArtist() : null;
         // ✅ 키워드 기반 랜덤 노래 추출
         Song song;
         Set<String> keywords = gameSession.getKeywords();
 
         if (keywords != null && !keywords.isEmpty()) {
             song = songService
-                    .getRandomSongByTagNames(keywords, gameSession.getUsedSongIds());
+                    .getRandomSongByTagNames(keywords, gameSession.getUsedSongIds(), currentArtist);
 
         } else {
             song = songService
-                    .getRandomSong(gameSession.getUsedSongIds());
+                    .getRandomSong(gameSession.getUsedSongIds(), currentArtist);
         }
 
         // ✅ 출제한 노래 ID 저장
