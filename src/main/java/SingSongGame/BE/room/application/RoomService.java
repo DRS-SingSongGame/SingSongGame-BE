@@ -21,11 +21,13 @@ import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.RoomRepository;
 import SingSongGame.BE.room.persistence.RoomType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -44,6 +46,7 @@ public class RoomService {
     private final GameSessionRepository gameSessionRepository;
     private final QuickMatchRepository quickMatchRepository;
     private final QuickMatchRoomPlayerRepository quickMatchRoomPlayerRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public CreateRoomResponse createRoom(CreateRoomRequest request, User hostUser) {
@@ -150,48 +153,45 @@ public class RoomService {
         // 퇴장 메시지 전송
         roomChatService.sendRoomLeaveMessage(user, roomId);
 
-        // inGame은 user와 room을 동시에 가지고 있다.
+        // InGame 삭제
         inGameRepository.delete(inGame);
 
-        // 남은 인원을 확인
+        // 남은 인원 확인
         Long restNumber = inGameRepository.countByRoom(room);
 
-        // 방장 유/무 확인
+        // 방장인지 확인
         boolean isHost = room.getHost().getId().equals(user.getId());
 
-        if (isHost) {
-            if (restNumber > 0) {
-                // 남은 사람이 있으면 첫 번째 인원에게 방장 권한을 위임
-                User nextHost = inGameRepository.findAllByRoom(room).get(0).getUser();
-                room.changeHost(nextHost);
-                //roomRepository.save(room);
+        if (restNumber == 0) {
+            // 마지막 플레이어가 나가면 방 완전 삭제
+            deleteRoomCompletely(room);
 
-            } else {
+            // 클라이언트에게 방 삭제 알림
+            messagingTemplate.convertAndSend("/topic/rooms/deleted", roomId);
 
-                if (room.getRoomType() == RoomType.QUICK_MATCH) {
-                    // 빠른대전 방 관련 데이터 삭제
-                    quickMatchRepository.findByRoom(room).ifPresent(quickRoom -> {
-                        quickMatchRoomPlayerRepository.deleteAllByRoom(quickRoom);
-                        quickMatchRepository.delete(quickRoom);
-                    });
-                }
-                // 남은 사람이 없으면 GameSession과 Room 삭제
-                gameSessionRepository.findById(roomId).ifPresent(gameSessionRepository::delete);
-                roomRepository.delete(room);
-                return ExitRoomResponse.builder()
-                                       .currentPlayer(0L)
-                                       .gameStatus(GameStatus.DELETED)
-                                       .users(List.of())
-                                       .hostName(room.getHost().getName())
-                                       .build();
-            }
+            return ExitRoomResponse.builder()
+                    .currentPlayer(0L)
+                    .gameStatus(GameStatus.DELETED)
+                    .users(List.of())
+                    .hostName(room.getHost().getName())
+                    .build();
+
+        } else if (isHost) {
+            // 방장이 나가고 다른 사람이 남아있으면 방장 위임
+            User nextHost = inGameRepository.findAllByRoom(room).get(0).getUser();
+            room.changeHost(nextHost);
+            // roomRepository.save(room); // @Transactional이 있어서 자동 저장됨
+
+            // 방장 변경 알림
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/host-changed",
+                    Map.of("newHostId", nextHost.getId(), "newHostName", nextHost.getName()));
         }
 
+        // 현재 방 상태 조회
         List<User> users = inGameRepository.findAllByRoom(room).stream()
                 .map(InGame::getUser)
                 .collect(Collectors.toList());
 
-        // GameSession이 없으면 WAITING 상태로 간주
         GameStatus finalStatus = gameSessionRepository.findById(roomId)
                 .map(GameSession::getGameStatus)
                 .orElse(GameStatus.WAITING);
@@ -200,6 +200,26 @@ public class RoomService {
                 .currentPlayer(restNumber)
                 .gameStatus(finalStatus)
                 .users(users)
+                .hostName(room.getHost().getName())
                 .build();
     }
+
+    // 방 완전 삭제를 위한 헬퍼 메서드 (RoomService에 추가)
+    private void deleteRoomCompletely(Room room) {
+        // 1. 빠른대전 관련 데이터 삭제
+        if (room.getRoomType() == RoomType.QUICK_MATCH) {
+            quickMatchRepository.findByRoom(room).ifPresent(quickRoom -> {
+                quickMatchRoomPlayerRepository.deleteAllByRoom(quickRoom);
+                quickMatchRepository.delete(quickRoom);
+            });
+        }
+
+        // 2. GameSession 삭제
+        gameSessionRepository.findById(room.getId()).ifPresent(gameSessionRepository::delete);
+
+        // 3. Room 삭제
+        roomRepository.delete(room);
+    }
+
+
 }
