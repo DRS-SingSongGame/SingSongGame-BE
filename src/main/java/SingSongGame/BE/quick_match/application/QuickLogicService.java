@@ -25,7 +25,7 @@ public class QuickLogicService {
             int max = baseMmr + 50 +expand;
 
             Set<Object> candidates = quickMatchQueueService.getCandidatesInRange(min, max);
-            if(candidates.size() >= 2){
+            if(candidates.size() >= 3){
                 List<User> matchedUsers = selectTop6(candidates);
                 QuickMatchService.startQuickMatchGame(matchedUsers);
                 matchedUsers.forEach(u -> quickMatchQueueService.removeFromQueue(u.getId()));

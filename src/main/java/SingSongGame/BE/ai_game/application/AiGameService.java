@@ -115,6 +115,9 @@ import java.util.concurrent.ScheduledFuture;
                 return;
             }
 
+            String currentArtist = gameSession.getCurrentSong() != null ?
+                    gameSession.getCurrentSong().getArtist() : null;
+
             Song song;
             Set<String> keywords = gameSession.getKeywords();
 
@@ -133,7 +136,7 @@ import java.util.concurrent.ScheduledFuture;
             if (keywords != null && !keywords.isEmpty()) {
                 log.info("🎵 [키워드 기반 곡 선택] keywords: {}", keywords);
 
-                song = songService.getRandomSongByTagNames(keywords, gameSession.getUsedSongIds());
+                song = songService.getRandomSongByTagNames(keywords, gameSession.getUsedSongIds(), currentArtist);
 
                 log.info("✅ [키워드 기반 곡 선택 완료] songId: {}, title: {}",
                         song.getId(), song.getTitle());
@@ -141,7 +144,7 @@ import java.util.concurrent.ScheduledFuture;
                 log.info("🎵 [전체 곡에서 랜덤 선택] 키워드 없음");
                 log.warn("⚠️  [키워드 문제] keywords가 null이거나 비어있음: {}", keywords);
 
-                song = songService.getRandomSong(gameSession.getUsedSongIds());
+                song = songService.getRandomSong(gameSession.getUsedSongIds(), currentArtist);
 
                 log.info("✅ [랜덤 곡 선택 완료] songId: {}, title: {}",
                         song.getId(), song.getTitle());
