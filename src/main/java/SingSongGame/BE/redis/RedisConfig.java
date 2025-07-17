@@ -2,6 +2,7 @@ package SingSongGame.BE.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,8 +24,8 @@ public class RedisConfig {
     @Bean
     public RedisMessageListenerContainer lobbyRedisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
-            MessageListenerAdapter lobbyListenerAdapter,
-            ChannelTopic lobbyChannelTopic
+            @Qualifier("lobbyListenerAdapter") MessageListenerAdapter lobbyListenerAdapter,
+            @Qualifier("lobbyChannelTopic") ChannelTopic lobbyChannelTopic
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
@@ -32,9 +33,26 @@ public class RedisConfig {
         return container;
     }
 
-    @Bean
+    @Bean("lobbyListenerAdapter")
     public MessageListenerAdapter lobbyListenerAdapter(LobbyRedisSubscriber lobbySubscriber) {
         return new MessageListenerAdapter(lobbySubscriber, "onMessage");
+    }
+
+    @Bean
+    public RedisMessageListenerContainer inGameRedisMessageListenerContainer(
+            RedisConnectionFactory connectionFactory,
+            @Qualifier("inGameListenerAdapter") MessageListenerAdapter inGameListenerAdapter,
+            @Qualifier("inGameChannelTopic") ChannelTopic inGameChannelTopic
+    ) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(inGameListenerAdapter, inGameChannelTopic);
+        return container;
+    }
+
+    @Bean("inGameListenerAdapter")
+    public MessageListenerAdapter inGameListenerAdapter(InGameRedisSubscriber inGameSubscriber) {
+        return new MessageListenerAdapter(inGameSubscriber, "onMessage");
     }
 
 
@@ -50,9 +68,14 @@ public class RedisConfig {
     }
 
 
-    @Bean
+    @Bean("lobbyChannelTopic")
     public ChannelTopic lobbyChannelTopic() {
         return new ChannelTopic("/topic/lobby");
+    }
+
+    @Bean("inGameChannelTopic")
+    public ChannelTopic inGameChannelTopic() {
+        return new ChannelTopic("/topic/room/*/answer");
     }
 
 
