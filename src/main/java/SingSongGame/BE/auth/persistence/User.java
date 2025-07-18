@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@Table(name = "users")
 public class User {
 
     @Id @GeneratedValue
