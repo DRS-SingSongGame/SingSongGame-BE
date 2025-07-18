@@ -62,6 +62,9 @@ public class GameSession {
     @Column(name = "keyword")
     private Set<String> keywords;
 
+    @Version
+    private Long version; // GameSession 내부 roundAnswered 동시성 해결 필드 version
+
 
 
     private LocalDateTime createdAt;
