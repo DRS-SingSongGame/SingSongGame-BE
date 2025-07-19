@@ -32,6 +32,7 @@ import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -209,7 +210,7 @@ public class InGameService {
         GameSession gameSession = gameSessionRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
-        System.out.println("verifyAnswer: User " + user.getName() + " submitted answer: " + answer + " for roomId: " + roomId); // 이 줄 추가
+        System.out.println("verifyAnswer: User " + user.getName() + " submitted answer: " + answer + " for roomId: " + roomId);
 
         // 이미 정답이 나왔으면 더 이상 처리하지 않음
         if (gameSession.isRoundAnswered()) {
@@ -218,27 +219,34 @@ public class InGameService {
 
         Song currentSong = gameSession.getCurrentSong();
         if (currentSong != null && normalizeAnswer(currentSong.getAnswer()).equals(normalizeAnswer(answer))) {
-            // 정답 맞혔을 때
-            int score = calculateScore(gameSession.getRoundStartTime());
-            int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
+            try {
+                // 정답 맞혔을 때
+                int score = calculateScore(gameSession.getRoundStartTime());
+                int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
 
-            gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
-            gameSessionRepository.save(gameSession);
+                gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
+                gameSessionRepository.save(gameSession); // @Version 충돌이 여기서 발생할 수 있음
 
-            // 기존 다음 라운드 스케줄링 취소
-            ScheduledFuture<?> currentTask = scheduledTasks.get(roomId);
-            if (currentTask != null) {
-                currentTask.cancel(false);
-                scheduledTasks.remove(roomId);
+                // 기존 다음 라운드 스케줄링 취소
+                ScheduledFuture<?> currentTask = scheduledTasks.get(roomId);
+                if (currentTask != null) {
+                    currentTask.cancel(false);
+                    scheduledTasks.remove(roomId);
+                }
+
+                // 정답 공개 메시지 전송 (정답 포함)
+                String winnerName = (user != null) ? user.getName() : "익명 사용자";
+                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores(), scoreGain ));
+
+                // 10초 후에 다음 라운드 시작 스케줄링
+                ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
+                scheduledTasks.put(roomId, nextRoundTask);
+                
+            } catch (OptimisticLockingFailureException e) {
+                // 동시성 충돌이 발생한 경우 - 다른 사용자가 이미 정답을 맞추었음
+                log.info("동시성 충돌 발생: User {}의 정답 제출이 무시됨 (다른 사용자가 먼저 정답을 맞춤)", user.getName());
+                return;
             }
-
-            // 정답 공개 메시지 전송 (정답 포함)
-            String winnerName = (user != null) ? user.getName() : "익명 사용자";
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores(), scoreGain ));
-
-            // 10초 후에 다음 라운드 시작 스케줄링
-            ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
-            scheduledTasks.put(roomId, nextRoundTask);
         }
     }
 
