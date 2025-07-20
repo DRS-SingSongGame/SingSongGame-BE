@@ -45,6 +45,9 @@ public class GameSession {
     private Integer roundDuration; // 초
     private boolean roundAnswered; // 현재 라운드 정답 여부
 
+    @Version
+    private Long version;
+
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "game_session_player_scores", joinColumns = @JoinColumn(name = "game_session_id"))
