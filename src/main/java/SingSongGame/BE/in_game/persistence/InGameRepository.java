@@ -30,6 +30,8 @@ public interface InGameRepository extends JpaRepository<InGame, Long> {
 
     List<InGame> findByRoomId(Long roomId);
 
+    List<InGame> findAllByUser(User user);
+
     List<InGame> findAllByUserId(Long userId);
 
     void deleteAllByRoom(Room room);
