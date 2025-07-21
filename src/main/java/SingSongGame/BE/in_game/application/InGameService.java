@@ -23,12 +23,14 @@ import SingSongGame.BE.room.persistence.*;
 import SingSongGame.BE.song.application.SongService;
 import SingSongGame.BE.song.application.dto.response.SongResponse;
 import SingSongGame.BE.song.persistence.Song;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -208,39 +210,44 @@ public class InGameService {
 
     @Transactional
     public void verifyAnswer(User user, Long roomId, String answer) {
-        GameSession gameSession = gameSessionRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
+        try {
+            GameSession gameSession = gameSessionRepository.findById(roomId)
+                                                           .orElseThrow(() -> new IllegalArgumentException("GameSession not found with id: " + roomId));
 
-        System.out.println("verifyAnswer: User " + user.getName() + " submitted answer: " + answer + " for roomId: " + roomId); // 이 줄 추가
+            System.out.println("verifyAnswer: User " + user.getName() + " submitted answer: " + answer + " for roomId: " + roomId);
 
-        // 이미 정답이 나왔으면 더 이상 처리하지 않음
-        if (gameSession.isRoundAnswered()) {
-            return;
-        }
-
-        Song currentSong = gameSession.getCurrentSong();
-        if (currentSong != null && normalizeAnswer(currentSong.getAnswer()).equals(normalizeAnswer(answer))) {
-            // 정답 맞혔을 때
-            int score = calculateScore(gameSession.getRoundStartTime());
-            int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
-
-            gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
-            gameSessionRepository.save(gameSession);
-
-            // 기존 다음 라운드 스케줄링 취소
-            ScheduledFuture<?> currentTask = scheduledTasks.get(roomId);
-            if (currentTask != null) {
-                currentTask.cancel(false);
-                scheduledTasks.remove(roomId);
+            // 이미 정답이 나왔으면 더 이상 처리하지 않음
+            if (gameSession.isRoundAnswered()) {
+                return;
             }
 
-            // 정답 공개 메시지 전송 (정답 포함)
-            String winnerName = (user != null) ? user.getName() : "익명 사용자";
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores(), scoreGain ));
+            Song currentSong = gameSession.getCurrentSong();
+            if (currentSong != null && normalizeAnswer(currentSong.getAnswer()).equals(normalizeAnswer(answer))) {
+                // 정답 맞혔을 때
+                int score = calculateScore(gameSession.getRoundStartTime());
+                int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
 
-            // 10초 후에 다음 라운드 시작 스케줄링
-            ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
-            scheduledTasks.put(roomId, nextRoundTask);
+                gameSession.setRoundAnswered(true); // 정답 처리 플래그 설정
+                //gameSessionRepository.saveAndFlush(gameSession);
+
+                // 기존 다음 라운드 스케줄링 취소
+                ScheduledFuture<?> currentTask = scheduledTasks.get(roomId);
+                if (currentTask != null) {
+                    currentTask.cancel(false);
+                    scheduledTasks.remove(roomId);
+                }
+
+                // 정답 공개 메시지 전송 (정답 포함)
+                String winnerName = (user != null) ? user.getName() : "익명 사용자";
+                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", new AnswerCorrectResponse(winnerName, currentSong.getAnswer(), currentSong.getTitle(), gameSession.getPlayerScores(), scoreGain ));
+
+                // 10초 후에 다음 라운드 시작 스케줄링
+                ScheduledFuture<?> nextRoundTask = taskScheduler.schedule(() -> startNextRound(roomId), new Date(System.currentTimeMillis() + ANSWER_REVEAL_DURATION_SECONDS * 1000));
+                scheduledTasks.put(roomId, nextRoundTask);
+            }
+        } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {
+            // 다른 스레드에서 이미 정답 처리를 완료한 경우 무시
+            log.info("해당 유저 롤백 {}", user.getName());
         }
     }
 
