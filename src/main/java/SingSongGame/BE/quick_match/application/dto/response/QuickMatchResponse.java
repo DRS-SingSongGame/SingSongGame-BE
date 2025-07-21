@@ -12,6 +12,7 @@ public record QuickMatchResponse (
         int averageMmr,
         int roundCount,
         String mode,
+        String roomType,
         List<QuickMatchPlayerInfo> players
 ) {
     public static QuickMatchResponse from(QuickMatchRoom room) {
@@ -31,6 +32,7 @@ public record QuickMatchResponse (
                 room.getAverageMmr(),
                 room.getRoundCount(),
                 room.getMode(),
+                room.getRoom().getRoomType().name(),
                 playerInfos
         );
     }
