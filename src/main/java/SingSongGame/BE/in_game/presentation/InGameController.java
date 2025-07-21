@@ -11,6 +11,7 @@ import SingSongGame.BE.in_game.dto.request.AnswerRequest;
 import SingSongGame.BE.in_game.dto.request.GameStartRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/game-session")
 @RequiredArgsConstructor
+@Slf4j
 public class InGameController {
 
     private final InGameService inGameService;
@@ -27,11 +29,11 @@ public class InGameController {
     @PostMapping("/{roomId}/start")
     public ApiResponse<ApiResponseBody.SuccessBody<Void>> startGame(
             @PathVariable("roomId") Long roomId,
-            @RequestBody(required = false) GameStartRequest request // <-- 추가
+            @RequestBody(required = false) GameStartRequest request
     ) {
-        Set<String> keywords = (request != null) ? request.keywords() : Set.of(); // null-safe 처리
-        System.out.println("🎯 받은 키워드들: " + keywords);
-        inGameService.startGame(roomId, keywords); // 서비스도 수정 필요
+        Set<String> keywords = (request != null) ? request.keywords() : Set.of();
+        log.info("🎯 게임 시작 - roomId: {}, keywords: {}", roomId, keywords);
+        inGameService.startGame(roomId, keywords);
         return ApiResponseGenerator.success(HttpStatus.OK, MessageCode.SUCCESS);
     }
 

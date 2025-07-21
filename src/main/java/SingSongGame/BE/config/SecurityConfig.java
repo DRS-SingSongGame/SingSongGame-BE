@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/health").permitAll()  // 헬스체크 허용
                         .requestMatchers("/api/auth/nickname").authenticated()
                         .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated()
