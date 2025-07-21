@@ -3,6 +3,7 @@ package SingSongGame.BE.ai_game.application;
 import SingSongGame.BE.ai_game.dto.response.AiAnswerCorrectResponse;
 import SingSongGame.BE.ai_game.dto.response.AiGameStartCountdownResponse;
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.in_game.application.AnswerValidator;
 import SingSongGame.BE.in_game.application.InGameService;
 import SingSongGame.BE.in_game.dto.response.AnswerCorrectResponse;
 import SingSongGame.BE.room.persistence.GameStatus;
@@ -45,6 +46,7 @@ import java.util.concurrent.ScheduledFuture;
         private final SongService songService;
         private final TaskScheduler taskScheduler;
         private final KeywordService keywordService;
+        private final AnswerValidator answerValidator;
 
         private final Map<Long, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
 
@@ -193,7 +195,7 @@ import java.util.concurrent.ScheduledFuture;
             if (gameSession.isRoundAnswered()) return;
 
             Song currentSong = gameSession.getCurrentSong();
-            if (currentSong != null && inGameService.normalizeAnswer(currentSong.getAnswer()).equals(inGameService.normalizeAnswer(answer))) {
+            if (currentSong != null && answerValidator.normalizeAnswer(currentSong.getAnswer()).equals(answerValidator.normalizeAnswer(answer))) {
                 gameSession.setRoundAnswered(true);
                 gameSessionRepository.save(gameSession);
 
