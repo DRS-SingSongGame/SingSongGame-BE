@@ -55,6 +55,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.redisson:redisson-spring-boot-starter:3.27.0'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 
 	compileOnly 'org.projectlombok:lombok'
@@ -66,6 +67,10 @@ dependencies {
 
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+	testImplementation 'org.assertj:assertj-core:3.23.1'
+	testImplementation 'com.h2database:h2'
 
 }
 
