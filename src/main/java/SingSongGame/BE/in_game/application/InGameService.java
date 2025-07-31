@@ -24,6 +24,8 @@ import SingSongGame.BE.song.persistence.Song;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +43,9 @@ public class InGameService {
 
     private static final int ROUND_DURATION_SECONDS = 30;
     private static final int ANSWER_REVEAL_DURATION_SECONDS = 5;
+    private static final String ANSWER_LOCK_PREFIX = "answer:lock:room:";
+    private static final long LOCK_WAIT_TIME = 1L;
+    private static final long LOCK_LEASE_TIME = 3L;
 
     private final InGameRepository inGameRepository;
     private final RoomRepository roomRepository;
@@ -56,6 +62,8 @@ public class InGameService {
     private final AnswerValidator answerValidator;
     private final ScoreCalculator scoreCalculator;
     private final GameScheduler gameScheduler;
+    private final RedissonClient redissonClient; //분산락
+
 
     @Transactional
     public void startGame(Long roomId, Set<String> keywords) {
@@ -130,19 +138,34 @@ public class InGameService {
 
 
     @Transactional
-    public void verifyAnswer(User user, Long roomId, String answer) {
-        try {
-            GameSession gameSession = gameStateManager.getGameSession(roomId);
-            
-            if (!answerValidator.canAcceptAnswer(gameSession)) {
-                return;
-            }
+    public boolean verifyAnswer(User user, Long roomId, String answer) {
+        String lockKey = ANSWER_LOCK_PREFIX + roomId;
+        RLock lock = redissonClient.getLock(lockKey);
 
-            if (answerValidator.isCorrectAnswer(gameSession, answer)) {
-                handleCorrectAnswer(user, roomId, gameSession);
+        try {
+            if (lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                try {
+                    GameSession gameSession = gameStateManager.getGameSession(roomId);
+
+                    if (!answerValidator.canAcceptAnswer(gameSession)) {
+                        return false;
+                    }
+
+                    if (answerValidator.isCorrectAnswer(gameSession, answer)) {
+                        handleCorrectAnswer(user, roomId, gameSession);
+                        return true;
+                    }
+                    return false;
+                } finally {
+                    if (lock.isHeldByCurrentThread()) {
+                        lock.unlock();
+                    }
+                }
             }
-        } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {
-            log.info("해당 유저 롤백 {}", user.getName());
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
     
