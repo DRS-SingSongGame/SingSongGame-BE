@@ -11,7 +11,8 @@ _Spring Boot 기반의 실시간 게임 서버_<br>
 ## 🔗 Links
 - 🌐 **웹사이트**: [https://singsonggame.store](https://singsonggame.store)
 - 📱 **프론트엔드**: [SingSongGame-FE](https://github.com/DRS-SingSongGame/SingSongGame-FE)
-- 📼 **발표영상** : [바로가기](발표영상링크)
+
+[//]: # (- 📼 **발표영상** : [바로가기]&#40;발표영상링크&#41;)
 
 <br/>
 
