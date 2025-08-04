@@ -6,6 +6,8 @@ import SingSongGame.BE.room.persistence.Room;
 import SingSongGame.BE.room.persistence.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +20,9 @@ public class RoomChatService {
 
     private final SimpMessageSendingOperations sendingOperations;
     private final RoomRepository roomRepository;
+    private final @Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate;
 
     public void sendRoomMessage(User user, Long roomId, String message) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
-
         RoomChatMessage chatMessage = RoomChatMessage.builder()
                 .roomId(roomId)
                 .senderId(user.getId().toString())
@@ -32,9 +32,13 @@ public class RoomChatService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        // 특정 방의 모든 사용자에게 메시지 전송
-        sendingOperations.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
+        String channel = "/topic/room/" + roomId + "/chat";
         
+        try {
+            redisTemplate.convertAndSend(channel, chatMessage);
+        } catch (Exception e) {
+            log.error("RoomChat Redis Publish 실패: {}", e.getMessage(), e);
+        }
         log.info("방 채팅 메시지 전송: 방 {} - {}: {}", roomId, user.getName(), message);
     }
 
@@ -48,7 +52,14 @@ public class RoomChatService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        sendingOperations.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
+        String channel = "/topic/room/" + roomId + "/chat";
+        
+        try {
+            redisTemplate.convertAndSend(channel, chatMessage);
+        } catch (Exception e) {
+            log.error("RoomEnter Redis Publish 실패: {}", e.getMessage(), e);
+        }
+        
         log.info("방 입장 메시지 전송: 방 {} - {}", roomId, user.getName());
     }
 
@@ -62,7 +73,14 @@ public class RoomChatService {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        sendingOperations.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
+        String channel = "/topic/room/" + roomId + "/chat";
+        
+        try {
+            redisTemplate.convertAndSend(channel, chatMessage);
+        } catch (Exception e) {
+            log.error("RoomLeave Redis Publish 실패: {}", e.getMessage(), e);
+        }
+        
         log.info("방 퇴장 메시지 전송: 방 {} - {}", roomId, user.getName());
     }
 } 

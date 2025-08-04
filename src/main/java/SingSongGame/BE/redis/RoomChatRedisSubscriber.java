@@ -1,9 +1,7 @@
 package SingSongGame.BE.redis;
 
-import SingSongGame.BE.in_game.dto.response.AnswerCorrectResponse;
-
+import SingSongGame.BE.chat.dto.RoomChatMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.Message;
@@ -14,12 +12,13 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class InGameRedisSubscriber implements MessageListener {
+public class RoomChatRedisSubscriber implements MessageListener {
+    private final  Integer ROOM_ID_INDEX = 3;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final SimpMessageSendingOperations messagingTemplate;
 
-    public InGameRedisSubscriber(
+    public RoomChatRedisSubscriber(
             ObjectMapper objectMapper,
             @Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate,
             SimpMessageSendingOperations messagingTemplate) {
@@ -32,19 +31,18 @@ public class InGameRedisSubscriber implements MessageListener {
     public void onMessage(Message message, byte[] pattern) {
         try {
             String publishMessage = (String) redisTemplate.getStringSerializer().deserialize(message.getBody());
-            String channelName = new String(message.getChannel());
-
-            String roomId = extractRoomId(channelName);
-            AnswerCorrectResponse answerResult = objectMapper.readValue(publishMessage, AnswerCorrectResponse.class);
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", answerResult);
-
-        } catch (Exception e) {
-            log.error("InGame Redis 메시지 처리 중 오류 발생: {}", e.getMessage(), e);
+            String channel = new String(message.getChannel());
+            String roomId = extractRoomId(channel);
+                
+            RoomChatMessage chatMessage = objectMapper.readValue(publishMessage, RoomChatMessage.class);
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/chat", chatMessage);
+            } catch (Exception e) {
+            log.error("RoomChat Redis 메시지 처리 중 오류 발생: {}", e.getMessage(), e);
         }
     }
 
     private String extractRoomId(String channelName) {
         String[] parts = channelName.split("/");
-        return parts[3];
+        return parts[ROOM_ID_INDEX];
     }
-} 
+}
