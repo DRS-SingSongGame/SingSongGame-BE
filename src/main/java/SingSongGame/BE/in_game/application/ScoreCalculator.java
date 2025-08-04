@@ -21,8 +21,8 @@ public class ScoreCalculator {
     private final InGameRepository inGameRepository;
     private final GameStateManager gameStateManager;
     
-    public int calculateScore(LocalDateTime roundStartTime) {
-        long secondsElapsed = Duration.between(roundStartTime, LocalDateTime.now()).getSeconds();
+    public int calculateScore(LocalDateTime roundStartTime, LocalDateTime answerTime) {
+        long secondsElapsed = Duration.between(roundStartTime, answerTime).getSeconds();
         int score = (int) (100 - (secondsElapsed * 2));
         return Math.max(score, 0);
     }

@@ -1,6 +1,7 @@
 package SingSongGame.BE.in_game.application;
 
 import SingSongGame.BE.auth.persistence.User;
+import SingSongGame.BE.in_game.dto.request.AnswerSubmission;
 import SingSongGame.BE.in_game.dto.response.FinalResult;
 import SingSongGame.BE.in_game.dto.response.GameEndResponse;
 import SingSongGame.BE.in_game.dto.response.GameStartCountdownResponse;
@@ -26,12 +27,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -56,13 +60,15 @@ public class InGameService {
     private final QuickMatchResultService quickMatchResultService;
     private final QuickMatchResultCache quickMatchResultCache;
     private final QuickMatchRepository quickMatchRoomRepository;
-    
+    private final @Qualifier("redisTemplate") RedisTemplate<String, Object> redisTemplate;
+
     // 새로운 컴포넌트들
     private final GameStateManager gameStateManager;
     private final AnswerValidator answerValidator;
     private final ScoreCalculator scoreCalculator;
     private final GameScheduler gameScheduler;
     private final RedissonClient redissonClient; //분산락
+    private final AnswerQueueService answerQueueService;
 
 
     @Transactional
@@ -139,38 +145,67 @@ public class InGameService {
 
     @Transactional
     public boolean verifyAnswer(User user, Long roomId, String answer) {
-        String lockKey = ANSWER_LOCK_PREFIX + roomId;
-        RLock lock = redissonClient.getLock(lockKey);
+        AnswerSubmission submission = AnswerSubmission.builder()
+                                                      .requestId(UUID.randomUUID().toString())
+                                                      .userId(user.getId())
+                                                      .userName(user.getName())
+                                                      .roomId(roomId)
+                                                      .answer(answer)
+                                                      .answerTime(LocalDateTime.now())
+                                                      .build();
 
-        try {
-            if (lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                try {
-                    GameSession gameSession = gameStateManager.getGameSession(roomId);
+        return answerQueueService.submitAnswer(submission);
+    }
 
-                    if (!answerValidator.canAcceptAnswer(gameSession)) {
-                        return false;
-                    }
+    @Transactional
+    public boolean processAnswer(AnswerSubmission submission) {
+        GameSession gameSession = gameStateManager.getGameSession(submission.getRoomId());
 
-                    if (answerValidator.isCorrectAnswer(gameSession, answer)) {
-                        handleCorrectAnswer(user, roomId, gameSession);
-                        return true;
-                    }
-                    return false;
-                } finally {
-                    if (lock.isHeldByCurrentThread()) {
-                        lock.unlock();
-                    }
-                }
-            }
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        if (!answerValidator.canAcceptAnswer(gameSession)) {
             return false;
         }
+
+        if (answerValidator.isCorrectAnswer(gameSession, submission.getAnswer())) {
+            User user = new User();
+            user.setId(submission.getUserId());
+            user.setName(submission.getUserName());
+            handleCorrectAnswer(user, submission.getRoomId(), gameSession, submission.getAnswerTime());
+            return true;
+        }
+        return false;
     }
+//        String lockKey = ANSWER_LOCK_PREFIX + roomId;
+//        RLock lock = redissonClient.getLock(lockKey);
+//
+//        try {
+//            if (lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+//                try {
+//                    GameSession gameSession = gameStateManager.getGameSession(roomId);
+//
+//                    if (!answerValidator.canAcceptAnswer(gameSession)) {
+//                        return false;
+//                    }
+//
+//                    if (answerValidator.isCorrectAnswer(gameSession, answer)) {
+//                        handleCorrectAnswer(user, roomId, gameSession);
+//                        return true;
+//                    }
+//                    return false;
+//                } finally {
+//                    if (lock.isHeldByCurrentThread()) {
+//                        lock.unlock();
+//                    }
+//                }
+//            }
+//            return false;
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            return false;
+//        }
+//    }
     
-    private void handleCorrectAnswer(User user, Long roomId, GameSession gameSession) {
-        int score = scoreCalculator.calculateScore(gameSession.getRoundStartTime());
+    private void handleCorrectAnswer(User user, Long roomId, GameSession gameSession, LocalDateTime answerTime) {
+        int score = scoreCalculator.calculateScore(gameSession.getRoundStartTime(), answerTime);
         int scoreGain = applicationContext.getBean(InGameService.class).addScore(user, roomId, score);
 
         gameStateManager.markRoundAnswered(roomId);
@@ -184,7 +219,14 @@ public class InGameService {
             gameSession.getPlayerScores(), scoreGain
         );
         
-        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer-correct", response);
+        String channel = "/topic/room/" + roomId + "/answer-correct";
+        
+        try {
+            redisTemplate.convertAndSend(channel, response);
+        } catch (Exception e) {
+            log.error("Redis Publish 실패: {}", e.getMessage(), e);
+        }
+
         gameScheduler.scheduleAnswerReveal(roomId, ANSWER_REVEAL_DURATION_SECONDS);
     }
 
