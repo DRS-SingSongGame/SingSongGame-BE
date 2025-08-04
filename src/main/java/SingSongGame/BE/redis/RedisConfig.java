@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -19,7 +20,22 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
+    @Bean
+    public RedisMessageListenerContainer roomChatRedisMessageListenerContainer(
+            RedisConnectionFactory connectionFactory,
+            @Qualifier("roomChatListenerAdapter") MessageListenerAdapter roomChatListenerAdapter,
+            @Qualifier("roomChatPatternTopic") PatternTopic roomChatPatternTopic
+    ) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(roomChatListenerAdapter, roomChatPatternTopic);
+        return container;
+    }
 
+    @Bean("roomChatListenerAdapter")
+    public MessageListenerAdapter roomChatListenerAdapter(RoomChatRedisSubscriber roomChatSubscriber) {
+        return new MessageListenerAdapter(roomChatSubscriber, "onMessage");
+    }
 
     @Bean
     public RedisMessageListenerContainer lobbyRedisMessageListenerContainer(
@@ -42,11 +58,11 @@ public class RedisConfig {
     public RedisMessageListenerContainer inGameRedisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
             @Qualifier("inGameListenerAdapter") MessageListenerAdapter inGameListenerAdapter,
-            @Qualifier("inGameChannelTopic") ChannelTopic inGameChannelTopic
+            @Qualifier("inGamePatternTopic") PatternTopic inGamePatternTopic
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(inGameListenerAdapter, inGameChannelTopic);
+        container.addMessageListener(inGameListenerAdapter, inGamePatternTopic);
         return container;
     }
 
@@ -55,29 +71,40 @@ public class RedisConfig {
         return new MessageListenerAdapter(inGameSubscriber, "onMessage");
     }
 
-
     @Bean
     @Primary
-    public RedisTemplate<String, Object> redisTemplate
-            (RedisConnectionFactory connectionFactory) {
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(connectionFactory);
         redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setValueSerializer(new Jackson2JsonRedisSerializer<>(String.class));
+        
+        // ObjectMapper 설정 (JavaTimeModule 포함)
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+        redisTemplate.setValueSerializer(serializer);
+        
         return redisTemplate;
     }
-
 
     @Bean("lobbyChannelTopic")
     public ChannelTopic lobbyChannelTopic() {
         return new ChannelTopic("/topic/lobby");
     }
 
-    @Bean("inGameChannelTopic")
-    public ChannelTopic inGameChannelTopic() {
-        return new ChannelTopic("/topic/room/*/answer");
+    // PatternTopic 사용 (와일드카드 지원)
+    @Bean("inGamePatternTopic")
+    public PatternTopic inGamePatternTopic() {
+        return new PatternTopic("/topic/room/*/answer-correct");
     }
 
+    // 채팅용 PatternTopic
+    @Bean("roomChatPatternTopic")
+    public PatternTopic roomChatPatternTopic() {
+        return new PatternTopic("/topic/room/*/chat");
+    }
 
     @Bean
     public ObjectMapper objectMapper() {
